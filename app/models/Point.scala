@@ -22,9 +22,9 @@ object Point {
     )
   def apply(accId: Long, typeString: String, identifier: String, data: JsObject): Point = {
     var typeId: Long = -1
-    Point.Type.get(typeString).get match {
-      case id: Long => typeId = id
-      case _ => throw new Exception("point(identifier=" + identifier + ") type: '" + typeString + "' isn't supported.")
+    Point.Type.get(typeString) match {
+      case id: Some[Long] => typeId = id.get
+      case None => throw new Exception("point(identifier=" + identifier + ") type: '" + typeString + "' isn't supported.")
     }
 
     if(identifier.length > 0){
