@@ -1,0 +1,20 @@
+@(code: Int, request: RequestHeader)
+
+@main(code + " Error - MINTPRESSO") {
+    
+    <h1>@code</h1>
+    @code match {
+    	case 404 => {
+    		Page Not Found - Check URL isn't misspelled.
+		}
+		case 500 => {
+			Internal Server Error - We're on maintenance.
+		}
+		case 400 => {
+			Bad Request - Check required parameters to API.
+		}
+    	case _ => {}
+    }
+    <p>@request</p>
+    
+}
