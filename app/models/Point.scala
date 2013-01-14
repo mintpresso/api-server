@@ -7,13 +7,18 @@ import java.util.Date
 import play.api.libs.json._
 import play.api.libs.json.Json._
 
-case class Point(id: Pk[Any], accountId: Long, typeId: Long, identifier: String, createdAt: Date, updatedAt: Date, referencedAt: Date, data: JsObject)
+case class Point(var id: Pk[Long], accountId: Long, typeId: Long, identifier: String, createdAt: Date, updatedAt: Date, referencedAt: Date, data: JsObject)
 
 object Point {
   val Type: Map[String, Long] = Map(
       "user" -> 10,
       "page" -> 20,
       "post" -> 30
+    )
+  val TypeString: Map[Long, String] = Map(
+      10L -> "user",
+      20L -> "page",
+      30L -> "post"
     )
   def apply(accId: Long, typeString: String, identifier: String, data: JsObject): Point = {
     var typeId: Long = -1
@@ -23,8 +28,10 @@ object Point {
     }
 
     if(identifier.length > 0){
-      this.findOneByTypeIdAndIdentifier(accId, typeId, identifier).get match {
-        case row: Point => row
+      this.findOneByTypeIdAndIdentifier(accId, typeId, identifier) match {
+        case row: Some[Point] => {
+          row.get
+        }
         case _ => {
           new Point(anorm.NotAssigned, accId, typeId, identifier, new Date, new Date, new Date, data )
         }
@@ -34,17 +41,27 @@ object Point {
     }
   }
 
+  def findOneById(accId: Long, id: Long): Option[Point] = {
+    DB.withConnection { implicit conn =>
+      val rowStream = SQL("select * from points where id = {id} and accountId = {accId} ").on('id -> id, 'accId -> accId).apply()
+      if(rowStream.isEmpty){
+        None
+      }else{
+        val row = rowStream.head
+        Some( new Point(row[Pk[Long]]("id"), row[Long]("accountId"), row[Long]("typeId"), row[String]("identifier"), row[Date]("createdAt"), row[Date]("updatedAt"), row[Date]("referencedAt"), Json.obj( "data" -> Json.parse(row[String]("data")) ) ))
+      }
+    }
+  }
+  
   def findOneByTypeIdAndIdentifier(accId: Long, typeId: Long, identifier: String): Option[Point] = {
     DB.withConnection { implicit conn =>
-      // .on('t -> typeId, 'i -> identifier)
-      SQL("select * from points where accountId = {accId} and type = {typeId} and identifier = {identifier}")().map {
-        //case Row(id: Long) => println(">>>>>>>>>>>>>>>" + id)
-        case Row(id: Long, accId: Long, typeId: Long, identifier: String, createdAt: Date, updatedAt: Date, referencedAt: Date, data: String) => {
-          Some(new Point(anorm.NotAssigned, accId, typeId, identifier, createdAt, updatedAt, referencedAt, Json.obj("data" -> Json.parse(data)) ))
-        }
-        //case Row(id: Long, typeId: Long, identifier: String, createdAt: Date, updatedAt: Date, referencedAt: Date, data: String) => Some(Point(anorm.id(id), type, identifier, createdAt, updatedAt, referencedAt, json.parse(data)))
+      val rowStream = SQL("select * from points where accountId = {accId} and typeId = {typeId} and identifier = {identifier}").on('accId -> accId, 'typeId -> typeId, 'identifier -> identifier).apply()
+      if(rowStream.isEmpty){
+        None
+      }else{
+        val row = rowStream.head
+        Some( new Point(row[Pk[Long]]("id"), row[Long]("accountId"), row[Long]("typeId"), row[String]("identifier"), row[Date]("createdAt"), row[Date]("updatedAt"), row[Date]("referencedAt"), Json.obj( "data" -> Json.parse(row[String]("data")) ) ))
       }
-      None
     }
   }
 

@@ -8,8 +8,9 @@ GET     /v1/accounts                controllers.Accounts.list
 GET     /v1/account/:id             controllers.Accounts.findOneById(id: Long)
 POST    /v1/account                 controllers.Accounts.add(email: String, name: String, password: String)
 
-GET     /v1/account/:id/point       controllers.Graph.getPoint(id: Long)
-POST    /v1/account/:id/point       controllers.Graph.addPoint(id: Long)
+GET     /v1/account/:accId/point/:pId       controllers.Graph.getPoint(accId: Long, pId: Long)
+GET     /v1/account/:accId/point            controllers.Graph.getPointByTypeAndIdentifier(accId: Long, type: String, identifier: String)
+POST    /v1/account/:accId/point            controllers.Graph.addPoint(accId: Long)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
