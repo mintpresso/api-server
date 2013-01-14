@@ -2,11 +2,11 @@
 CREATE TABLE edges (
     id bigint(20) NOT NULL PRIMARY KEY AUTO_INCREMENT,
     sId bigint(20) NOT NULL,
-    sType tinyint(20) NOT NULL,
+    sType bigint(20) NOT NULL,
     v varchar(255) NOT NULL,
     oId bigint(20) NOT NULL,
-    oType tinyint(20) NOT NULL,
-    createdAt date NOT NULL
+    oType bigint(20) NOT NULL,
+    createdAt datetime NOT NULL
 );
 
 # --- !Downs
