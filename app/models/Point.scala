@@ -1,8 +1,9 @@
 package models
 
-import anorm._ 
 import play.api.Play.current
-import play.api.db.DB
+import play.api.db._
+import anorm._ 
+import anorm.SqlParser._
 import java.util.Date
 import play.api.libs.json._
 import play.api.libs.json.Json._
@@ -10,6 +11,20 @@ import play.api.libs.json.Json._
 case class Point(var id: Pk[Long], accountId: Long, typeId: Long, identifier: String, createdAt: Date, updatedAt: Date, referencedAt: Date, data: JsObject)
 
 object Point {
+  val parser = {
+    get[Pk[Long]]("id")~
+    get[Long]("accountId")~
+    get[Long]("typeId")~ 
+    get[String]("identifier")~ 
+    get[Date]("createdAt")~ 
+    get[Date]("updatedAt")~ 
+    get[Date]("referencedAt")~ 
+    get[String]("data") map {
+      case pk~l1~l2~s1~d1~d2~d3~s2 => {
+        new Point(pk, l1, l2, s1, d1, d2, d3, Json.obj( "data" -> Json.parse(s2)))
+      }
+    }
+  }
   val Type: Map[String, Long] = Map(
       "user" -> 10,
       "page" -> 20,
@@ -53,6 +68,34 @@ object Point {
     }
   }
   
+  def findAllByTypeId(accId: Long, typeId: Long, limit: Int, offset: Int): List[Point] = {
+    DB.withConnection { implicit conn =>
+      SQL(
+        """
+          select * from points where accountId = {accId} and typeId = {typeId} limit {offset}, {limit}
+        """
+      ).on( 'accId -> accId, 
+            'typeId -> typeId,
+            'limit -> limit,
+            'offset -> offset
+      ).as(parser *)
+    }
+  }
+
+  def findAllByIdentifier(accId: Long, identifier: String, limit: Int, offset: Int): List[Point] = {
+    DB.withConnection { implicit conn =>
+      SQL(
+        """
+          select * from points where accountId = {accId} and identifier = {identifier} limit {offset}, {limit}
+        """
+      ).on( 'accId -> accId, 
+            'identifier -> identifier,
+            'limit -> limit,
+            'offset -> offset
+      ).as(parser *)
+    }
+  }
+
   def findOneByTypeIdAndIdentifier(accId: Long, typeId: Long, identifier: String): Option[Point] = {
     DB.withConnection { implicit conn =>
       val rowStream = SQL("select * from points where accountId = {accId} and typeId = {typeId} and identifier = {identifier}").on('accId -> accId, 'typeId -> typeId, 'identifier -> identifier).apply()
@@ -64,6 +107,7 @@ object Point {
       }
     }
   }
+
 
   def add(point: Point):Option[Long] = {
     DB.withConnection { implicit conn =>
