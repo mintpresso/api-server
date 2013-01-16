@@ -34,14 +34,15 @@ object Graph extends Controller {
           throw new Exception("""Json object 'type' is required like this: { "point": {"type": ... } } """)
         }
         var identifier = (obj \ "identifier").asOpt[String]
-        var _identifier: String = ""
-        if(identifier.get != None){
-          _identifier = identifier.get
+        var _identifier: String = identifier match {
+          case Some(value: String) => value
+          case None => ""
         }
+
         var data:Option[JsObject] = (obj \ "data").asOpt[JsObject]
-        var _data:JsObject = Json.obj()
-        if(data.get != None){
-          _data = data.get
+        var _data:JsObject = data match {
+          case Some(obj: JsObject) => obj
+          case None => Json.obj()
         }
 
         var point: Point = Point(accId, typeString.get, _identifier, _data)
@@ -101,19 +102,8 @@ object Graph extends Controller {
 
   def getPoint(accId: Long, id: Long) = Action { implicit request =>
     Point.findOneById(accId, id) map { point: Point =>
-        var _id: Long = -1
+        var _id: Long = point.id.get
       
-        point.id.get match { 
-          case x: Long => _id = x
-          case _ => {
-            InternalServerError(Json.obj(
-              "status" -> Json.obj(
-                "code" -> 500,
-                "message" -> "(accId=%s / pointId=%s) doesn't have Pk[Id]".format(accId, id)
-              )
-            ))
-          }
-        }
         Ok(Json.obj(
           "status" -> Json.obj(
             "code" -> 200,
