@@ -124,29 +124,36 @@ object Graph extends Controller {
         Application.NotFoundJson(404, "Point not found")
       }
   }
-  def getPointByTypeAndIdentifier(accId: Long, typeString: String, identifier: String) = Action { implicit request =>
+  def getPointByTypeOrIdentifier(accId: Long, _typeString: String, _identifier: String, _limit: Int, _offset: Int) = Action { implicit request =>
+    var typeString: String = _typeString
+    var identifier: String = _identifier
+    var limit: Int = _limit
+    var offset: Int = _offset
     try {
-      var typeId: Long = -1
-      Point.Type.get(typeString).get match {
-        case id: Long => typeId = id
-        case _ => throw new Exception("point(identifier=" + identifier + ", type=?) type: '" + typeString + "' isn't supported.")
+      if(typeString.length == 0 && identifier.length == 0){
+        val (__typeString, __identifier, __l, __o) = Form(
+          tuple(
+            "type" -> optional(text),
+            "identifier" -> optional(text),
+            "limit" -> optional(number(1, 100)),
+            "offset" -> optional(number(0))
+          )
+        ).bindFromRequest.get
+        typeString = __typeString.getOrElse("")
+        identifier = __identifier.getOrElse("")
+        limit = __l.getOrElse(10)
+        offset = __o.getOrElse(0)
       }
 
-      if(identifier.length > 0){
-        Point.findOneByTypeIdAndIdentifier(accId, Point.Type(typeString), identifier) map { point: Point =>
-          var _id: Long = -1
+      if(typeString != "" && identifier != ""){
+        var typeId: Long = -1
+        Point.Type.get(typeString) match {
+          case Some(id: Long) => typeId = id
+          case _ => throw new Exception("point(identifier=%1$s, type=%2$s) type: '%2$s' isn't supported.".format(identifier, typeString))
+        }
+        Point.findOneByTypeIdAndIdentifier(accId, typeId, identifier) map { point: Point =>
+          var _id: Long = point.id.get
       
-          point.id.get match { 
-            case x: Long => _id = x
-            case _ => {
-              InternalServerError(Json.obj(
-                "status" -> Json.obj(
-                  "code" -> 500,
-                  "message" -> "(accId=%s / typeString=%s / identifer=%s) doesn't have Pk[Id]".format(accId, typeString, identifier)
-                )
-              ))
-            }
-          }
           Ok(Json.obj(
             "status" -> Json.obj(
               "code" -> 200,
@@ -166,8 +173,107 @@ object Graph extends Controller {
         } getOrElse {
           Application.NotFoundJson(404, "Point not found")
         }
+      }else if(typeString != ""){
+        var typeId: Long = -1
+        Point.Type.get(typeString) match {
+          case Some(id: Long) => typeId = id
+          case _ => throw new Exception("point(identifier=?, type=%1$s) type: '%1$s' isn't supported.".format(typeString))
+        }
+        val list: List[Point] = Point.findAllByTypeId(accId, typeId, limit, offset)
+        if(list.length == 0){
+          Application.NotFoundJson(404, "Point not found")  
+        }else{
+          var array: JsArray = new JsArray()
+          list.foreach { point: Point =>
+            var _id: Long = point.id.get
+            array = Json.obj( "point" -> Json.obj(
+              "id" -> _id,
+              "type" -> Point.TypeString(point.typeId),
+              "identifier" -> point.identifier,
+              "createdAt" -> point.createdAt,
+              "updatedAt" -> point.updatedAt,
+              "referencedAt" -> point.referencedAt,
+              "data" -> point.data,
+              "_url" -> routes.Graph.getPoint(accId, _id).absoluteURL()
+            )) +: array
+          }
+          
+          val current: String = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?type=%s&limit=%d&offset=%d".format(typeString, limit, offset)
+          val next = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?type=%s&limit=%d&offset=%d".format(typeString, limit, offset+limit)
+          val prev = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?type=%s&limit=%d&offset=%d".format(typeString, limit, math.max(0,offset-limit) )
+          // var next: String = ""
+          // var prev: String = ""
+          // if(list.length > offset + limit){
+          //   next = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?type=%s&limit=%d&offset%d".format(typeString, limit, offset+limit)
+          // }else{
+          //   next = current + '#'
+          // }
+          // val pages = offset / limit
+          // if(pages > 0){
+          //   prev = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?type=%s&limit=%d&offset%d".format(typeString, limit, math.min(0,offset-limit) )
+          // }else{
+          //   prev = current + '#'
+          // }
+          var result: JsObject = Json.obj(
+            "status" -> Json.obj(
+                "code" -> 200,
+                "message" -> ""
+              ),
+            "points" -> array,
+            "_previous" -> prev,
+            "_current" -> current,
+            "_next" -> next
+            )
+          Ok(result)
+        }
+      }else if(identifier != ""){
+        val list: List[Point] = Point.findAllByIdentifier(accId, identifier, limit, offset)
+        if(list.length == 0){
+          Application.NotFoundJson(404, "Point not found")  
+        }else{
+          var array: JsArray = new JsArray()
+          list.foreach { point: Point =>
+            var _id: Long = point.id.get
+            array = Json.obj( "point" -> Json.obj(
+              "id" -> _id,
+              "type" -> Point.TypeString(point.typeId),
+              "identifier" -> point.identifier,
+              "createdAt" -> point.createdAt,
+              "updatedAt" -> point.updatedAt,
+              "referencedAt" -> point.referencedAt,
+              "data" -> point.data,
+              "_url" -> routes.Graph.getPoint(accId, _id).absoluteURL()
+            )) +: array
+          }
+          
+          val current: String = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?identifier=%s&limit=%d&offset%d".format(identifier, limit, offset)
+          var next: String = ""
+          var prev: String = ""
+          if(list.length > offset + limit){
+            next = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?identifier=%s&limit=%d&offset%d".format(identifier, limit, offset+limit)
+          }else{
+            next = current + '#'
+          }
+          val pages = offset / limit
+          if(pages > 0){
+            prev = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?identifier=%s&limit=%d&offset%d".format(identifier, limit, math.min(0,offset-limit) )
+          }else{
+            prev = current + '#'
+          }
+          var result: JsObject = Json.obj(
+            "status" -> Json.obj(
+                "code" -> 200,
+                "message" -> ""
+              ),
+            "points" -> array,
+            "_previous" -> prev,
+            "_current" -> current,
+            "_next" -> next
+            )
+          Ok(result)
+        }
       }else{
-        throw new Exception("point(identifier=?, type='" + typeString + "') identifier isn't given.")
+        throw new Exception("point(identifier=?, type=?) how can I do for you? ") 
       }
     } catch { 
       case e: Exception =>
