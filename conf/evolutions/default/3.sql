@@ -2,7 +2,7 @@
 CREATE TABLE points (
     id bigint(20) NOT NULL PRIMARY KEY AUTO_INCREMENT,
     accountId bigint(20) NOT NULL,
-    identifier varchar(1000) NOT NULL UNIQUE,
+    identifier varchar(1000) NOT NULL,
     typeId bigint(20) NOT NULL,
     createdAt datetime NOT NULL,
     updatedAt datetime NOT NULL,
