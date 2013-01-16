@@ -29,8 +29,8 @@ object Accounts extends Controller {
       Account.add( Account(email, name, password) ) map { id: Long =>
         Ok(Json.obj(
           "status" -> Json.obj(
-              "code" -> 201,
-              "message" -> ""
+            "code" -> 201,
+            "message" -> ""
           ),
           "account" -> Json.obj(
             "id" -> toJson(id),
@@ -67,8 +67,8 @@ object Accounts extends Controller {
    
       Ok(Json.obj(
         "status" -> Json.obj(
-            "code" -> 200,
-            "message" -> ""
+          "code" -> 200,
+          "message" -> ""
         ),
         "account" -> Json.obj(
           "id" -> _id,
