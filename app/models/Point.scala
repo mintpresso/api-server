@@ -58,13 +58,13 @@ object Point {
 
   def findOneById(accId: Long, id: Long): Option[Point] = {
     DB.withConnection { implicit conn =>
-      val rowStream = SQL("select * from points where id = {id} and accountId = {accId} ").on('id -> id, 'accId -> accId).apply()
-      if(rowStream.isEmpty){
-        None
-      }else{
-        val row = rowStream.head
-        Some( new Point(row[Pk[Long]]("id"), row[Long]("accountId"), row[Long]("typeId"), row[String]("identifier"), row[Date]("createdAt"), row[Date]("updatedAt"), row[Date]("referencedAt"), Json.obj( "data" -> Json.parse(row[String]("data")) ) ))
-      }
+      SQL(
+        """
+          select * from points where id = {id} and accountId = {accId}
+        """
+      ).on( 'id -> id,
+            'accId -> accId
+      ).singleOpt(parser)
     }
   }
   
@@ -98,9 +98,16 @@ object Point {
 
   def findOneByTypeIdAndIdentifier(accId: Long, typeId: Long, identifier: String): Option[Point] = {
     DB.withConnection { implicit conn =>
-      val rowStream = SQL("select * from points where accountId = {accId} and typeId = {typeId} and identifier = {identifier}").on('accId -> accId, 'typeId -> typeId, 'identifier -> identifier).apply()
-      if(rowStream.isEmpty){
-        None
+      SQL(
+        """
+          select * from points where accountId = {accId} and typeId = {typeId} and identifier = {identifier}
+        """
+      ).on( 'accId -> accId, 
+            'typeId -> typeId, 
+            'identifier -> identifier
+      ).singleOpt(parser)
+    }
+  }
       }else{
         val row = rowStream.head
         Some( new Point(row[Pk[Long]]("id"), row[Long]("accountId"), row[Long]("typeId"), row[String]("identifier"), row[Date]("createdAt"), row[Date]("updatedAt"), row[Date]("referencedAt"), Json.obj( "data" -> Json.parse(row[String]("data")) ) ))
