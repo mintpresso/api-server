@@ -1,8 +1,9 @@
 package models
 
-import anorm._ 
 import play.api.Play.current
-import play.api.db.DB
+import play.api.db._
+import anorm._ 
+import anorm.SqlParser._
 import java.util.Date
 import play.api.libs.json._
 import play.api.libs.json.Json._
@@ -12,24 +13,27 @@ case class Edge(id: Pk[Any], sId: Long, sType: Long, v: String, oId: Long, oType
 }
 
 object Edge {
-  def apply(sId: Long, sType: String, v: String, oId: Long, oType: String): Edge = {
-    var sTypeId: Long = -1
-    var oTypeId: Long = -1
-    
-    Point.Type.get(sType).get match {
-      case id: Long => sTypeId = id
-      case _ => throw new Exception("subject type: '" + sType + "' isn't supported.")
+  val parser = {
+    get[Pk[Long]]("id")~
+    get[Long]("sId")~
+    get[Long]("sType")~ 
+    get[String]("v")~ 
+    get[Long]("oId")~
+    get[Long]("oType")~ 
+    get[Date]("createdAt") map {
+      case pk~l1~l2~s1~l3~l4~d1 => {
+        new Edge(pk, l1, l2, s1, l3, l4, d1)
+      }
     }
-    Point.Type.get(oType).get match {
-      case id: Long => oTypeId = id
-      case _ => throw new Exception("object type: '" + oType + "' isn't supported.")
-    }
+  }
+
+  def apply(sId: Long, sTypeId: Long, v: String, oId: Long, oTypeId: Long): Edge = {
     new Edge(anorm.NotAssigned, sId, sTypeId, v, oId, oTypeId, new Date())
   }
 
-  def add(edge: Edge) = {
+  def add(edge: Edge): Option[Long] = {
     DB.withConnection { implicit conn =>
-      val id: Option[Long] = SQL(
+      SQL(
         """
         insert into edges (sId, sType, v, oId, oType, createdAt)
         values ({sId}, {sType}, {v}, {oId}, {oType}, {createdAt})
@@ -42,7 +46,7 @@ object Edge {
         'oType -> edge.oType,
         'createdAt -> edge.createdAt
       ).executeInsert()
-      id
+      Some(0L)
     }
   }
 }
