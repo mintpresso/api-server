@@ -291,4 +291,101 @@ object Graph extends Controller {
         ))
     }
   }
+
+  /*
+  {
+    "edge": {
+      "subjectId": 1,
+      "verb": "read",
+      "objectId": 2
+    }
+  }
+   */
+  def linkWithEdge(accId: Long) = Action(parse.json) { implicit request =>
+    try {
+      (request.body \ "edge").asOpt[JsObject].map { e =>
+        var _sId = (e \ "subjectId").asOpt[Int]
+        var _v = (e \ "verb").asOpt[String]
+        var _oId = (e \ "objectId").asOpt[Int]
+
+        var sId = 0L
+        var v = ""
+        var oId = 0L
+        var sTypeId: Long = -1
+        var oTypeId: Long = -1
+
+        _v match {
+          case Some(verb: String) => {
+            if(verb.length < 3){
+              throw new Exception("point(type=?, id=?) '?' point(type=?, id=?): verb must have at least 3 characters.")
+            }
+            if(verb.length > 20){
+              throw new Exception("point(type=?, id=?) '?' point(type=?, id=?): verb must have less than or 20 characters.")
+            }
+            v = verb
+          }
+          case _ => throw new Exception("point(type,id) '?' point(type,id): no verb is described.")
+        }
+        
+
+        (_sId, _oId) match {
+          case (Some(x: Int), Some(y: Int)) => {
+            sId = x
+            oId = y
+            // optimization code (shard index) comes here.
+            Point.getTypeId(accId, x) match {
+              case Some(id: Long) => {
+                sTypeId = id
+              }
+              case _ => {
+                throw new Exception("unknown point(id=%1$s) '%3$s' point(id=%2$s): subject point isn't found.".format(x, y, v))
+              }
+            }
+            Point.getTypeId(accId, y) match {
+              case Some(id: Long) => {
+                oTypeId = id
+              }
+              case _ => {
+                throw new Exception("point(id=%1$s, type=%4$s) '%3$s' unknown point(id=%2$s): object point isn't found.".format(x, y, v, Point.TypeString(sTypeId)))
+              }
+            }
+            if(sTypeId == oTypeId){
+              throw new Exception("point(id=%1$s, type=%2$s) '%3$s' point(id=%1$s, type=%2$s): no self-reference and iteratable relationship are allowed.".format(x, Point.TypeString(sTypeId), v))
+            }
+          }
+          case _ => throw new Exception("point(type=?, id=%1$s) '%3$s' point(type=?, id=%2$s): id of point must be a number.".format(sId, oId, v))
+        }
+        val edge = Edge(sId, sTypeId, v, oId, oTypeId)
+        Edge.add( edge ) map { id: Long =>
+          Created(Json.obj(
+            "status" -> Json.obj(
+              "code" -> 201,
+              "message" -> "Edge created."
+            )
+          ))
+        } getOrElse {
+          InternalServerError(Json.obj(
+            "status" -> Json.obj(
+              "code" -> 500,
+              "message" -> {
+                "Edge not created. Try again."
+              }
+            )
+          ))
+        }
+      } getOrElse {
+        throw new Exception("point(type=?, id=?) '...' point(type=?, id=?): no points are selected.")
+      }
+    } catch { 
+      case e: Exception =>
+        BadRequest(Json.obj(
+          "status" -> Json.obj(
+            "code" -> 400,
+            "message" -> {
+              e.getMessage()
+            }
+          )
+        ))
+    }
+  }
 }
