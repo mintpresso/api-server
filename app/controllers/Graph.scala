@@ -53,7 +53,7 @@ object Graph extends Controller {
             Point.add(point) map { id: Long =>
               point.id = new Id(id)
               code = 201
-              msg = "Point created"
+              msg = "Point created."
             } getOrElse {
               InternalServerError(Json.obj(
                 "status" -> Json.obj(
@@ -69,7 +69,7 @@ object Graph extends Controller {
           }
         }
 
-        Ok(Json.obj(
+        val result: JsObject = Json.obj(
           "status" -> Json.obj(
             "code" -> code,
             "message" -> msg
@@ -81,7 +81,14 @@ object Graph extends Controller {
             "data" -> _data,
             "_url" -> routes.Graph.getPoint(accId, point.id.get).absoluteURL()
           )
-        ))  
+        )  
+        
+        if(code == 200){
+          Ok(result)
+        }else{
+          // 201
+          Created(result)
+        }
         
       } getOrElse {
         throw new Exception("""Json object 'point' is required like this: { "point": ... } """)
