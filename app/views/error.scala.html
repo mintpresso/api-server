@@ -1,4 +1,4 @@
-@(code: Int, request: RequestHeader)
+@(code: Int, request: RequestHeader, message: Option[String])
 
 @main(code + " Error - MINTPRESSO") {
     
@@ -14,6 +14,9 @@
 			Bad Request - Check required parameters to API.
 		}
     	case _ => {}
+    }
+    @message.map { text =>
+    <p class="code">@text</p>
     }
     <p>@request</p>
     

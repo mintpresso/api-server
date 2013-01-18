@@ -18,20 +18,20 @@ object Global extends GlobalSettings {
 
   override def onError(request: RequestHeader, ex: Throwable) = {
     InternalServerError(
-      views.html.error(500, request)
+      views.html.error(500, request, None)
     )
   }
 
   override def onHandlerNotFound(request: RequestHeader): Result = {
     NotFound(
-      views.html.error(404, request)
+      views.html.error(404, request, None)
     )
   }
 
   override def onBadRequest(request: RequestHeader, error: String) = {
     Logger.info("BadRequest: " + error)
     BadRequest(
-    	views.html.error(400, request)
+    	views.html.error(400, request, Some(error))
     )
   }
     
