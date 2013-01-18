@@ -92,7 +92,6 @@ object Graph extends Controller {
           "status" -> Json.obj(
             "code" -> 400,
             "message" -> {
-              e.printStackTrace()
               e.getMessage()
             }
           )
