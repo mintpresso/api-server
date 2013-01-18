@@ -108,10 +108,31 @@ object Point {
       ).singleOpt(parser)
     }
   }
+
+  def verifyPoints(accId: Long, pIdA: Long, pIdB: Long): Boolean = {
+    DB.withConnection { implicit conn =>
+      val result: Int = SQL(
+        """
+          select count(id) from points where id = {a} or {b}
+        """
+      ).on( 'a -> pIdA,
+            'b -> pIdB
+      ).as(scalar[Int].single)
+      if(result == 2){
+        true
       }else{
-        val row = rowStream.head
-        Some( new Point(row[Pk[Long]]("id"), row[Long]("accountId"), row[Long]("typeId"), row[String]("identifier"), row[Date]("createdAt"), row[Date]("updatedAt"), row[Date]("referencedAt"), Json.obj( "data" -> Json.parse(row[String]("data")) ) ))
+        false
       }
+    }
+  }
+
+  def getTypeId(accId: Long, pId: Long): Option[Long] = {
+    DB.withConnection { implicit conn =>
+      SQL(
+        """
+          select typeId from points where id = {id}
+        """
+      ).on( 'id -> pId ).as(scalar[Long].singleOpt)
     }
   }
 
