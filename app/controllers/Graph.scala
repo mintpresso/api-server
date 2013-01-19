@@ -388,4 +388,162 @@ object Graph extends Controller {
         ))
     }
   }
+
+  /*
+    /v1/account/1/edge?subjectId=1&subjectType=user&verb=read&objectId=?$objectType=post
+   */
+  def findEdges(accId: Long) = Action { implicit request =>
+    try {
+      val (sI, sT, vOpt, oI, oT) = Form(
+        tuple(
+          "subjectId" -> optional(longNumber),
+          "subjectType" -> optional(text),
+          "verb" -> optional(text),
+          "objectId" -> optional(longNumber),
+          "objectType" -> optional(text)
+        )
+      ).bindFromRequest.get
+
+      (sI, sT, vOpt, oI, oT) match {
+        case (None, None, None, None, None) => throw new Exception("edge(subjectId | subjectType | verb | objectId | oType): no description for edge is given.")
+        case _ => 
+      }
+
+      var sId: Long = sI.getOrElse(-1L)
+      var sType = sT.getOrElse("")
+      var sTypeId = -1L
+      var v = vOpt.getOrElse("")
+      var oId = oI.getOrElse(-1L)
+      var oType = oT.getOrElse("")
+      var oTypeId = -1L
+
+      var complexity = 0.0
+      var audit: List[(String, Long)] = List()
+      // check complexity
+      if(v == ""){
+        complexity += 3
+        audit = ("no verb = 3", 3L) +: audit
+      }
+      var sDefined = true
+      var oDefined = true
+      if(sId == -1){
+        if(sType.length == 0){
+          complexity += 2 
+          sDefined = false
+          audit = ("no subject id & type = 2", 2L) +: audit
+        }else{
+          complexity += 1
+          audit = ("no subject id but type is = 1", 1L) +: audit
+        }
+      }
+      if(oId == -1){
+        if(oType.length == 0){
+          complexity += 2 
+          oDefined = false
+          audit = ("no object id & type = 2", 2L) +: audit
+        }else{
+          complexity += 1
+          audit = ("no object id but type is = 1", 1L) +: audit
+        }
+      }
+
+      //audit = (sDefined + " || " + oDefined, 0L) +: audit
+      if((sDefined || oDefined) == false){
+        complexity += 2
+        audit = ("no models = 2", 2L) +: audit
+      }
+
+      val sum = audit.foldLeft(("Audit logs: \n", 0L)){ (a: (String, Long), b: (String, Long)) =>
+        (a._1 + "\t" + b._1 + "\n", a._2 + b._2)
+      }
+      println("Comp = " + sum._2 + "\n" + sum._1)
+
+      val maxComplexity = 9
+      /*
+       * sId + v + oId = 0
+       * sType + v + oType = 2
+       * sId + v = 2
+       * sId + oId = 3
+       * sId = 5
+       * sType + oType = 5
+       * v = 6
+       */
+      if(complexity >= 5){
+        throw new Exception("edge(?): the pseudo edge specified in query has too many unknown fields. Calculated complexity is %f".format(complexity / maxComplexity))
+      }
+
+      // prepare variables and arguments
+      if(v.length < 3){
+        throw new Exception("edge(?): verb must have at least 3 characters.")
+      }
+      if(v.length > 20){
+        throw new Exception("edge(?): verb must have less than or 20 characters.")
+      }
+
+      if(sId != -1){
+        Point.getTypeId(accId, sId) match {
+          case Some(id: Long) => {
+            sTypeId = id
+          }
+          case _ => {
+            throw new Exception("unknown point(id=%1$s): subject point isn't found.".format(sId))
+          }
+        }
+      }else if(sType.length > 0){
+        sTypeId = Point.Type.get(sType).getOrElse {
+          throw new Exception("edge(?): subject type of '%1$s' isn't supported.".format(sType))
+          -1
+        }
+      }
+
+      if(oId != -1){
+        Point.getTypeId(accId, oId) match {
+          case Some(id: Long) => {
+            oTypeId = id
+          }
+          case _ => {
+            throw new Exception("unknown point(id=%1$s): subject point isn't found.".format(sId))
+          }
+        }
+      }else if(oType.length > 0){
+        oTypeId = Point.Type.get(oType).getOrElse {
+          throw new Exception("edge(?): object type of '%1$s' isn't supported.".format(sType))
+          -1
+        }
+      }
+
+      // find cache
+
+      // generate new query for search
+      var args: List[(String, Long)] = List()
+
+      if(sId != -1){
+        args = args :+ ("sId", sId) :+ ("sType", sTypeId)
+      }else if(sTypeId != -1){
+        args = args :+ ("sType", sTypeId)
+      }
+      if(oId != -1){
+        args = args :+ ("oId", oId) :+ ("oType", oTypeId)
+      }else if(oTypeId != -1){
+        args = args :+ ("oType", oTypeId)
+      }
+
+      Edge.find(Some(v), args:_*) map { edge =>
+        Application.NotFoundJson(404, "TEST")
+      } getOrElse {
+        Application.NotFoundJson(404, "Edge not found")
+      }        
+    } catch { 
+      case e: Exception =>
+      e.printStackTrace()
+        BadRequest(Json.obj(
+          "status" -> Json.obj(
+            "code" -> 400,
+            "message" -> {
+              e.getMessage()
+            }
+          )
+        ))
+    }
+  }
 }
