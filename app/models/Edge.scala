@@ -31,6 +31,22 @@ object Edge {
     new Edge(anorm.NotAssigned, sId, sTypeId, v, oId, oTypeId, new Date())
   }
 
+  def find(verb: Option[String], args: (String, Long)*): Option[Edge] = {
+    DB.withConnection { implicit conn =>
+      args.length match {
+        case 1 =>
+
+        case 2 =>
+
+        case 3 =>
+
+        case 4 =>
+      }
+      // TODO: List((sId,1), (sType,10))
+      None
+    }
+  }
+
   def add(edge: Edge): Option[Long] = {
     DB.withConnection { implicit conn =>
       SQL(
