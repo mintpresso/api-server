@@ -390,7 +390,7 @@ object Graph extends Controller {
   }
 
   /*
-    /v1/account/1/edge?subjectId=1&subjectType=user&verb=read&objectId=?$objectType=post
+    /v1/account/1/edge?subjectId=1&subjectType=user&verb=read&objectId=0&objectType=post
    */
   def findEdges(accId: Long) = Action { implicit request =>
     try {
@@ -502,12 +502,12 @@ object Graph extends Controller {
             oTypeId = id
           }
           case _ => {
-            throw new Exception("unknown point(id=%1$s): subject point isn't found.".format(sId))
+            throw new Exception("unknown point(id=%1$s): object point isn't found.".format(oId))
           }
         }
       }else if(oType.length > 0){
         oTypeId = Point.Type.get(oType).getOrElse {
-          throw new Exception("edge(?): object type of '%1$s' isn't supported.".format(sType))
+          throw new Exception("edge(?): object type of '%1$s' isn't supported.".format(oType))
           -1
         }
       }
