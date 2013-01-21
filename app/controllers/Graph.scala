@@ -516,23 +516,61 @@ object Graph extends Controller {
 
       // generate new query for search
       var args: List[(String, Long)] = List()
+      var param: List[(String, Any)] = List()
 
       if(sId != -1){
         args = args :+ ("sId", sId) :+ ("sType", sTypeId)
+        param = param :+ ("subjectId", sId) :+ ("subjectType", sTypeId)
       }else if(sTypeId != -1){
         args = args :+ ("sType", sTypeId)
+        param = param :+ ("subjectType", sTypeId)
+      }
+      if(v.length > 0){
+        param = param :+ ("verb", v)
       }
       if(oId != -1){
         args = args :+ ("oId", oId) :+ ("oType", oTypeId)
+        param = param :+ ("objectId", oId) :+ ("objectType", oTypeId)
       }else if(oTypeId != -1){
         args = args :+ ("oType", oTypeId)
+        param = param :+ ("objectType", oTypeId)
       }
 
-      Edge.find(Some(v), args:_*) map { edge =>
-        Application.NotFoundJson(404, "TEST")
-      } getOrElse {
-        Application.NotFoundJson(404, "Edge not found")
-      }        
+
+      val list: List[Edge] = Edge.find(Some(v), args:_*)
+
+      if(list.length == 0){
+        Application.NotFoundJson(404, "Edge not found")  
+      }else{
+        val url: String = (param.foldLeft(("", 0)){ (a: (String, Any), b: (String, Any)) => 
+          var delim = "&"
+          if(a._1.length == 0){
+            delim = "?"
+          }
+          ("%s%s%s=%s".format(a._1, delim, b._1, b._2), 0)
+        })._1
+
+        var array: JsArray = new JsArray()
+        list.foreach { edge: Edge =>
+          array = Json.obj( "edge" -> Json.obj(
+            "subjectId" -> edge.sId,
+            "subjectType" -> Point.TypeString(edge.sType),
+            "verb" -> edge.v,
+            "objectId" -> edge.oId,
+            "objectType" -> Point.TypeString(edge.oType),
+            "createdAt" -> edge.createdAt,
+            "_url" -> (routes.Graph.findEdges(accId).absoluteURL() + url)
+            )) +: array
+        }
+        var result: JsObject = Json.obj(
+          "status" -> Json.obj(
+              "code" -> 200,
+              "message" -> ""
+            ),
+          "edges" -> array
+          )
+        Ok(result)
+      }
     } catch { 
       case e: Exception =>
       e.printStackTrace()
