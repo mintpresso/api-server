@@ -1,6 +1,7 @@
 package models
 
 import anorm._ 
+import anorm.SqlParser._
 import play.api.Play.current
 import play.api.db.DB
 import java.util.Date
@@ -9,6 +10,17 @@ case class Account(id: Pk[Any], email: String, name: String, var password: Strin
 }
 
 object Account {
+  val parser = {
+    get[Pk[Long]]("id")~
+    get[String]("email")~ 
+    get[String]("password")~ 
+    get[String]("name") map {
+      case pk~s1~s2~s3 => {
+        new Account(pk, s1, s2, s3)
+      }
+    }
+  }
+
   def apply(email: String, name: String, password: String): Account = {
     new Account(anorm.NotAssigned, email, name, password)
   }
@@ -43,13 +55,21 @@ object Account {
   
   def findOneById(id: Long): Option[Account] = {
     DB.withConnection { implicit conn =>
-      val rowStream = SQL("select * from accounts where id = {id}").on('id -> id).apply()
-      if(rowStream.isEmpty){
-        None
-      }else{
-        val row = rowStream.head
-        Some(new Account(row[Pk[Long]]("id"), row[String]("email"), row[String]("name"), ""))
-      }
+      SQL(
+        """
+          select * from accounts where id = {id}
+        """
+      ).on( 'id -> id ).singleOpt(parser)
+    }
+  }
+
+  def findOneByEmail(email: String): Option[Account] = {
+    DB.withConnection { implicit conn =>
+      SQL(
+        """
+          select * from accounts where email = {email}
+        """
+      ).on( 'email -> email ).singleOpt(parser)
     }
   }
 
