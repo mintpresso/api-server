@@ -4,6 +4,7 @@
 GET     /                           		controllers.Application.index
 GET     /v1/accounts                		controllers.Accounts.list
 GET     /v1/account/:id             		controllers.Accounts.findOneById(id: Long)
+POST    /v1/account/authenticate      		controllers.Accounts.authenticate(email: String, password: String)
 POST    /v1/account                 		controllers.Accounts.add(email: String, name: String, password: String)
 
 GET 	/v1/account/:accId/fiters		 	controllers.Query.findFilters(accId: Long)

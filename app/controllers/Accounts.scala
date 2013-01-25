@@ -81,4 +81,16 @@ object Accounts extends Controller {
     }
   }
 
+  def authenticate(email: String, pw: String) = Action {
+    Account.findOneByEmail(email) map { acc =>
+      if(acc.password == pw){
+        Ok
+      }else{
+        Forbidden
+      }
+    } getOrElse {
+      Forbidden
+    }
+  }
+
 }
