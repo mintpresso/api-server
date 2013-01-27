@@ -23,8 +23,22 @@ object Application extends Controller {
     Ok(views.html.index("Your new application is ready."))
   }
 
-  def NotFoundJson(code: Int, message: String) = 
+  def NotFoundJson(code: Int = 404, message: String = "") = 
     NotFound(Json.obj(
+      "status" -> Json.obj(
+        "code" -> code,
+        "message" -> message
+      )
+    ))
+  def InternalServerErrorJson(code: Int = 500, message: String = "") = 
+    InternalServerError(Json.obj(
+      "status" -> Json.obj(
+        "code" -> code,
+        "message" -> message
+      )
+    ))
+  def BadRequestJson(code: Int = 400, message: String = "") = 
+    BadRequest(Json.obj(
       "status" -> Json.obj(
         "code" -> code,
         "message" -> message
