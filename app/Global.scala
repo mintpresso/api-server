@@ -3,6 +3,7 @@ import play.api.mvc._
 import play.api.mvc.Results._
 import play.api.libs.concurrent._
 import play.api.Play.current
+import controllers.Application
 
 import anorm._
 
@@ -17,22 +18,17 @@ object Global extends GlobalSettings {
   }
 
   override def onError(request: RequestHeader, ex: Throwable) = {
-    InternalServerError(
-      views.html.error(500, request, None)
-    )
+    Application.InternalServerErrorJson(500, "Temporarily service is unavailable.")
   }
 
   override def onHandlerNotFound(request: RequestHeader): Result = {
-    NotFound(
-      views.html.error(404, request, None)
-    )
+    Application.NotFoundJson(404, request.toString)
   }
 
   override def onBadRequest(request: RequestHeader, error: String) = {
     Logger.info("BadRequest: " + error)
-    BadRequest(
-    	views.html.error(400, request, Some(error))
-    )
+    Logger.info(" > " + request)
+    Application.BadRequestJson(400, "BadRequest: " + error)
   }
     
 }
