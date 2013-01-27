@@ -26,26 +26,35 @@ object Accounts extends Controller {
   }
   def add(email: String, name: String, password: String) = Action {
     try {
-      Account.add( Account(email, name, password) ) map { id: Long =>
-        Ok(Json.obj(
+      Account.findOneByEmail(email) map { acc =>
+        Conflict(Json.obj(
           "status" -> Json.obj(
-            "code" -> 201,
-            "message" -> ""
-          ),
-          "account" -> Json.obj(
-            "id" -> toJson(id),
-            "email" -> toJson(email),
-            "name" -> toJson(name)
-          )
-        ))  
-      } getOrElse {
-        BadRequest(Json.obj(
-          "status" -> Json.obj(
-            "code" -> 500,
-            "message" -> "Account not created. try again"
+            "code" -> 409,
+            "message" -> acc.name
           )
         ))
-      }
+      } getOrElse {
+        Account.add( Account(email, name, password) ) map { id: Long =>
+          Ok(Json.obj(
+            "status" -> Json.obj(
+              "code" -> 201,
+              "message" -> ""
+            ),
+            "account" -> Json.obj(
+              "id" -> toJson(id),
+              "email" -> toJson(email),
+              "name" -> toJson(name)
+            )
+          ))  
+        } getOrElse {
+          BadRequest(Json.obj(
+            "status" -> Json.obj(
+              "code" -> 500,
+              "message" -> "Account not created. try again"
+            )
+          ))
+        }
+      } 
     } catch { 
       case e: Exception =>
         BadRequest(Json.obj(
@@ -83,13 +92,29 @@ object Accounts extends Controller {
 
   def authenticate(email: String, pw: String) = Action {
     Account.findOneByEmail(email) map { acc =>
-      if(acc.password == pw){
-        Ok
+      val md = java.security.MessageDigest.getInstance("SHA-1")
+      val hash = new sun.misc.BASE64Encoder().encode(md.digest(pw.getBytes))
+      if(acc.password == hash){
+        var _id: Long = acc.id.get match {
+          case x: Long => x
+        }
+
+        Ok(Json.obj(
+          "status" -> Json.obj(
+            "code" -> 200,
+            "message" -> ""
+          ),
+          "account" -> Json.obj(
+            "id" -> _id,
+            "email" -> acc.email,
+            "name" -> acc.name
+          )
+        ))
       }else{
         Forbidden
       }
     } getOrElse {
-      Forbidden
+      NoContent
     }
   }
 

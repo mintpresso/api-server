@@ -16,7 +16,7 @@ object Account {
     get[String]("password")~ 
     get[String]("name") map {
       case pk~s1~s2~s3 => {
-        new Account(pk, s1, s2, s3)
+        new Account(pk, s1, s3, s2)
       }
     }
   }
