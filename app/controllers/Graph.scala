@@ -137,6 +137,36 @@ object Graph extends Controller {
     }
     Ok(Json.parse("[" + str + "]"))
   }
+
+  def getPointLatest(accId: Long) = Action { implicit request =>
+    val list: List[Point] = Point.findAllByLatest(accId)
+    if(list.length == 0){
+      Application.NotFoundJson(404, "Point not found")  
+    }else{
+      var array: JsArray = new JsArray()
+      list.foreach { point: Point =>
+        var _id: Long = point.id.get
+        array = Json.obj( "point" -> Json.obj(
+          "id" -> _id,
+          "type" -> Point.TypeString(point.typeId),
+          "identifier" -> point.identifier,
+          "createdAt" -> point.createdAt,
+          "updatedAt" -> point.updatedAt,
+          "referencedAt" -> point.referencedAt,
+          "data" -> point.data,
+          "_url" -> routes.Graph.getPoint(accId, _id).absoluteURL()
+        )) +: array
+      }
+      var result: JsObject = Json.obj(
+        "status" -> Json.obj(
+            "code" -> 200,
+            "message" -> ""
+          ),
+        "points" -> array
+        )
+      Ok(result)
+    }
+  }
   def getPointByTypeOrIdentifier(accId: Long, _typeString: String, _identifier: String, _limit: Int, _offset: Int) = Action { implicit request =>
     var typeString: String = _typeString
     var identifier: String = _identifier

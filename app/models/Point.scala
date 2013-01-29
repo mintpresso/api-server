@@ -109,6 +109,17 @@ object Point {
     }
   }
 
+  def findAllByLatest(accId: Long): List[Point] = {
+    DB.withConnection { implicit conn =>
+      SQL(
+        """
+          select * from points where accountId = {accId} order by createdAt desc limit 0, 10
+        """
+      ).on( 'accId -> accId
+      ).as(parser *)
+    }  
+  }
+
   def verifyPoints(accId: Long, pIdA: Long, pIdB: Long): Boolean = {
     DB.withConnection { implicit conn =>
       val result: Int = SQL(
