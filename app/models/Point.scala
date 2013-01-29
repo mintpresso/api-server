@@ -136,6 +136,22 @@ object Point {
     }
   }
 
+  def getTypes(accId: Long): List[String] = {
+    DB.withConnection { implicit conn =>
+      val list: List[Int] = SQL(
+        """
+          select distinct typeId as type from points where accountId = {id}
+        """
+      ).on( 'id -> accId ).as(
+        int("type") *
+      )
+      var res: List[String] = List()
+      list.foreach { i =>
+        res = res :+ TypeString(i).toString
+      }
+      res
+    }
+  }
 
   def add(point: Point):Option[Long] = {
     DB.withConnection { implicit conn =>

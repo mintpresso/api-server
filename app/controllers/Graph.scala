@@ -130,6 +130,13 @@ object Graph extends Controller {
         Application.NotFoundJson(404, "Point not found")
       }
   }
+
+  def getPointTypes(accId: Long) = Action { implicit request =>
+    val str = Point.getTypes(accId).foldLeft("") { (a: String, b: String) =>
+      "%s, \"%s\"".format(a, b)
+    }
+    Ok(Json.parse("[" + str + "]"))
+  }
   def getPointByTypeOrIdentifier(accId: Long, _typeString: String, _identifier: String, _limit: Int, _offset: Int) = Action { implicit request =>
     var typeString: String = _typeString
     var identifier: String = _identifier
