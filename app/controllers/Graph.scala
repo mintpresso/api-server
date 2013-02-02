@@ -132,9 +132,7 @@ object Graph extends Controller {
   }
 
   def getPointTypes(accId: Long) = Action { implicit request =>
-    val str = Point.getTypes(accId).foldLeft("") { (a: String, b: String) =>
-      "%s, \"%s\"".format(a, b)
-    }
+    val str = Point.getTypes(accId) collect { case s: String => "\"%s\"".format(s) } mkString(", ")
     Ok(Json.parse("[" + str + "]"))
   }
 

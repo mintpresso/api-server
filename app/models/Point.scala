@@ -149,18 +149,16 @@ object Point {
 
   def getTypes(accId: Long): List[String] = {
     DB.withConnection { implicit conn =>
-      val list: List[Int] = SQL(
+      val list: List[Long] = SQL(
         """
-          select distinct typeId as type from points where accountId = {id}
+          select distinct typeId from points where accountId = {id}
         """
       ).on( 'id -> accId ).as(
-        int("type") *
+        long("typeId") *
       )
-      var res: List[String] = List()
-      list.foreach { i =>
-        res = res :+ TypeString(i).toString
+      list collect {
+        case l: Long => TypeString(l).toString
       }
-      res
     }
   }
 
