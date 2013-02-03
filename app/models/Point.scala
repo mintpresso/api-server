@@ -113,7 +113,7 @@ object Point {
     DB.withConnection { implicit conn =>
       SQL(
         """
-          select * from points where accountId = {accId} order by createdAt desc limit 0, 10
+          select * from points where accountId = {accId} order by createdAt desc limit 0, 30
         """
       ).on( 'accId -> accId
       ).as(parser *)
