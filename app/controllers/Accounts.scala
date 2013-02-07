@@ -34,7 +34,7 @@ object Accounts extends Controller {
           )
         ))
       } getOrElse {
-        Account.add( Account(email, name, password) ) map { id: Long =>
+        Account.add( Account(email, name, Crypto.sign(password) )) map { id: Long =>
           Ok(Json.obj(
             "status" -> Json.obj(
               "code" -> 201,
@@ -92,8 +92,7 @@ object Accounts extends Controller {
 
   def authenticate(email: String, pw: String) = Action {
     Account.findOneByEmail(email) map { acc =>
-      val md = java.security.MessageDigest.getInstance("SHA-1")
-      val hash = new sun.misc.BASE64Encoder().encode(md.digest(pw.getBytes))
+      val hash = Crypto.sign(pw)
       if(acc.password == hash){
         var _id: Long = acc.id.get match {
           case x: Long => x
@@ -118,4 +117,36 @@ object Accounts extends Controller {
     }
   }
 
+  def setAPI(id: Long, pw: String, url: String) = Action {
+    Account.findOneById(id) map { acc =>
+      if(acc.password == Crypto.sign(pw)){
+        Account.updateToken( Crypto.encryptAES(id + url) )
+        Ok
+      }else{
+        Forbidden
+      }
+    } getOrElse {
+      Forbidden
+    }
+  }
+
+  def getAPI(id: Long) = Action {
+    Account.findOneById(id) map { acc =>
+      val t = acc.api_token
+      val d = Crypto.decryptAES(t)
+      val ll = id.toString.length
+      val i = d.substring(0, ll)
+      if(i == id.toString){
+        val u: Array[String] = d.substring(ll, d.length - ll ).split(",")
+        Ok(Json.obj(
+          "api_token" -> acc.api_token,
+          "urls" -> Json.arr( u )
+          ))
+      }else{
+        Forbidden
+      }
+    } getOrElse {
+      NotFound
+    }
+  }
 }
