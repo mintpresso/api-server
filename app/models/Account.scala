@@ -5,6 +5,7 @@ import anorm.SqlParser._
 import play.api.Play.current
 import play.api.db.DB
 import java.util.Date
+import play.api.libs.Crypto
 
 case class Account(id: Pk[Any], email: String, name: String, var password: String, api_token: String) {
 }
@@ -39,13 +40,14 @@ object Account {
       */
       val id: Option[Long] = SQL(
         """
-          insert into accounts(email, name, password)
-          values ({email}, {name}, {password})
+          insert into accounts(email, name, password, api_token)
+          values ({email}, {name}, {password}, {token})
         """
       ).on(
         'email -> obj.email, 
         'name -> obj.name, 
-        'password -> obj.password
+        'password -> obj.password,
+        'token -> ""
       ).executeInsert()
       id
     }
@@ -78,13 +80,13 @@ object Account {
     }
   }
 
-  def updateToken(token: String) = {
+  def updateToken(id: Long, token: String) = {
     DB.withConnection { implicit conn =>
       SQL(
         """
-          update from accounts set api_token = {token}
+          update accounts set api_token = {token} where id = {id}
         """
-      ).on( 'token -> token ).execute()
+      ).on( 'id -> id, 'token -> token ).execute()
     }
   }
 }

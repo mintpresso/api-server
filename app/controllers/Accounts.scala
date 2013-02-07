@@ -35,6 +35,7 @@ object Accounts extends Controller {
         ))
       } getOrElse {
         Account.add( Account(email, name, Crypto.sign(password) )) map { id: Long =>
+          Account.updateToken(id, Crypto.encryptAES(id.toString + "*"))
           Ok(Json.obj(
             "status" -> Json.obj(
               "code" -> 201,
@@ -120,7 +121,7 @@ object Accounts extends Controller {
   def setAPI(id: Long, pw: String, url: String) = Action {
     Account.findOneById(id) map { acc =>
       if(acc.password == Crypto.sign(pw)){
-        Account.updateToken( Crypto.encryptAES(id + url) )
+        Account.updateToken( id, Crypto.encryptAES(id + url) )
         Ok
       }else{
         Forbidden
@@ -137,10 +138,10 @@ object Accounts extends Controller {
       val ll = id.toString.length
       val i = d.substring(0, ll)
       if(i == id.toString){
-        val u: Array[String] = d.substring(ll, d.length - ll ).split(",")
+        val u: Array[String] = d.substring(ll).split(",")
         Ok(Json.obj(
-          "api_token" -> acc.api_token,
-          "urls" -> Json.arr( u )
+          "token" -> acc.api_token,
+          "urls" -> u
           ))
       }else{
         Forbidden
