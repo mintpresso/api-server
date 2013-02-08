@@ -29,6 +29,9 @@ object Graph extends Controller {
   def addPoint(accId: Long) = Action(parse.json) { implicit request =>
     try { 
       (request.body \ "point").asOpt[JsObject].map { obj =>
+        var code: Int = 0
+        var msg: String = ""
+
         var typeString = (obj \ "type").asOpt[String]
         if(typeString.get == None){
           throw new Exception("""Json object 'type' is required like this: { "point": {"type": ... } } """)
@@ -42,18 +45,18 @@ object Graph extends Controller {
         var data:Option[JsObject] = (obj \ "data").asOpt[JsObject]
         var _data:JsObject = data match {
           case Some(obj: JsObject) => obj
-          case None => Json.obj()
+          case None => {
+            msg += "json.invalid"
+            Json.obj()
+          }
         }
 
         var point: Point = Point(accId, typeString.get, _identifier, _data)
-        var code: Int = 0
-        var msg: String = ""
         point.id match {
           case NotAssigned => {
             Point.add(point) map { id: Long =>
               point.id = new Id(id)
               code = 201
-              msg = "Point created."
             } getOrElse {
               InternalServerError(Json.obj(
                 "status" -> Json.obj(
@@ -65,7 +68,7 @@ object Graph extends Controller {
           }
           case id: Pk[Long] => {
             code = 200
-            msg = "Already defined."
+            msg += "Already defined. "
           }
         }
 
