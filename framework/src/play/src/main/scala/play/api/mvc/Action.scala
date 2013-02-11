@@ -11,6 +11,13 @@ import scala.concurrent.Future
 trait Handler
 
 /**
+ * A handler that is able to tag requests
+ */
+trait RequestTaggingHandler extends Handler {
+  def tagRequest(request: RequestHeader): RequestHeader
+}
+
+/**
  * Reference to an Handler.
  */
 class HandlerRef[T](callValue: => T, handlerDef: play.core.Router.HandlerDef)(implicit handlerInvoker: play.core.Router.HandlerInvoker[T]) extends play.mvc.HandlerRef {
@@ -206,7 +213,14 @@ trait ActionBuilder {
    */
   def apply[A](bodyParser: BodyParser[A])(block: Request[A] => Result): Action[A] = new Action[A] {
     def parser = bodyParser
-    def apply(ctx: Request[A]) = block(ctx)
+    def apply(ctx: Request[A]) = try {
+      block(ctx)
+    } catch {
+      // NotImplementedError is not caught by NonFatal, wrap it
+      case e: NotImplementedError => throw new RuntimeException(e)
+      // LinkageError is similarly harmless in Play Framework, since automatic reloading could easily trigger it
+      case e: LinkageError => throw new RuntimeException(e)
+    }
   }
 
   /**
