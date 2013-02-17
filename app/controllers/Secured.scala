@@ -41,12 +41,11 @@ trait Secured {
     // allows access from MintpressoCore
     val domain = Play.configuration.getString("mintpresso.panel.domain").getOrElse("localhost")
     val remoteAddress = Play.configuration.getString("mintpresso.panel.address").getOrElse("127.0.0.1")
-    (request.domain, request.remoteAddress) match {
-      case (domain, remoteAddress) => f(request)
-      case _ => {
-        Logger.info("COMPARE: domain(" + request.domain + "), remoteAddress(" + request.remoteAddress + ") with " + (Play.configuration.getString("mintpresso.panel.domain"), Play.configuration.getString("mintpresso.panel.address")))
-        Results.Forbidden
-      }
+    Logger.info("Access Denied: domain " + request.domain + " == " + domain + " && remoteAddress " + request.remoteAddress + " == " + remoteAddress)
+    if(request.domain == domain && request.remoteAddress == remoteAddress){
+      f(request)
+    }else{
+      Results.Forbidden
     }
   }
 }
