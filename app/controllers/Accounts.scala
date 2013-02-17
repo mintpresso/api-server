@@ -17,14 +17,12 @@ import play.api.cache._
 import play.api.libs.json._
 import play.api.libs.json.Json._
 
-object Accounts extends Controller {
+object Accounts extends Controller with Secured {
 
-  def list = Action {
-    Ok(
-      Account.count.getOrElse(0) + " account(s)"
-    )
+  def list = LocalAPI { implicit request =>
+    Ok( Account.count.getOrElse(0) + " account(s)" )
   }
-  def add(email: String, name: String, password: String) = Action {
+  def add(email: String, name: String, password: String) = LocalAPI { implicit request =>
     try {
       Account.findOneByEmail(email) map { acc =>
         Conflict(Json.obj(
@@ -66,7 +64,7 @@ object Accounts extends Controller {
         ))
     }
   }
-  def findOneById(id: Long) = Action { implicit request =>
+  def findOneById(id: Long) = LocalAPI { implicit request =>
     Account.findOneById(id) map { acc =>
       var _id: Long = -1
       
@@ -91,7 +89,7 @@ object Accounts extends Controller {
     }
   }
 
-  def authenticate(email: String, pw: String) = Action {
+  def authenticate(email: String, pw: String) = LocalAPI { implicit request =>
     Account.findOneByEmail(email) map { acc =>
       val hash = Crypto.sign(pw)
       if(acc.password == hash){
@@ -118,7 +116,7 @@ object Accounts extends Controller {
     }
   }
 
-  def setAPI(id: Long, pw: String, url: String) = Action {
+  def setAPI(id: Long, pw: String, url: String) = LocalAPI { implicit request =>
     Account.findOneById(id) map { acc =>
       if(acc.password == Crypto.sign(pw)){
         Account.updateToken( id, Crypto.encryptAES(id + url) )
@@ -131,7 +129,7 @@ object Accounts extends Controller {
     }
   }
 
-  def getAPI(id: Long) = Action {
+  def getAPI(id: Long) = LocalAPI { implicit request =>
     Account.findOneById(id) map { acc =>
       val t = acc.api_token
       val d = Crypto.decryptAES(t)
