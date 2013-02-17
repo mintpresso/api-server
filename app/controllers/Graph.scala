@@ -13,7 +13,7 @@ import play.api.libs.json._
 import models._
 import anorm._ 
 
-object Graph extends Controller {
+object Graph extends Controller with Secured {
 
   /*
   {
@@ -26,73 +26,77 @@ object Graph extends Controller {
     }
   }
    */
-  def addPoint(accId: Long) = Action(parse.json) { implicit request =>
+  def addPoint(accId: Long) = SignedAPI(accId) { implicit request =>
     try { 
-      (request.body \ "point").asOpt[JsObject].map { obj =>
-        var code: Int = 0
-        var msg: String = ""
+      request.body.asJson.map { json =>
+        (json \ "point").asOpt[JsObject].map { obj =>
+          var code: Int = 0
+          var msg: String = ""
 
-        var typeString = (obj \ "type").asOpt[String]
-        if(typeString.get == None){
-          throw new Exception("""Json object 'type' is required like this: { "point": {"type": ... } } """)
-        }
-        var identifier = (obj \ "identifier").asOpt[String]
-        var _identifier: String = identifier match {
-          case Some(value: String) => value
-          case None => ""
-        }
-
-        var data:Option[JsObject] = (obj \ "data").asOpt[JsObject]
-        var _data:JsObject = data match {
-          case Some(obj: JsObject) => obj
-          case None => {
-            msg += "json.invalid"
-            Json.obj()
+          var typeString = (obj \ "type").asOpt[String]
+          if(typeString.get == None){
+            throw new Exception("""Json object 'type' is required like this: { "point": {"type": ... } } """)
           }
-        }
+          var identifier = (obj \ "identifier").asOpt[String]
+          var _identifier: String = identifier match {
+            case Some(value: String) => value
+            case None => ""
+          }
 
-        var point: Point = Point(accId, typeString.get, _identifier, _data)
-        point.id match {
-          case NotAssigned => {
-            Point.add(point) map { id: Long =>
-              point.id = new Id(id)
-              code = 201
-            } getOrElse {
-              InternalServerError(Json.obj(
-                "status" -> Json.obj(
-                  "code" -> 500,
-                  "message" -> "Point not created. try again"
-                )
-              ))
+          var data:Option[JsObject] = (obj \ "data").asOpt[JsObject]
+          var _data:JsObject = data match {
+            case Some(obj: JsObject) => obj
+            case None => {
+              msg += "json.invalid"
+              Json.obj()
             }
           }
-          case id: Pk[Long] => {
-            code = 200
-            msg += "Already defined. "
-          }
-        }
 
-        val result: JsObject = Json.obj(
-          "status" -> Json.obj(
-            "code" -> code,
-            "message" -> msg
-          ),
-          "point" -> Json.obj(
-            "id" -> point.id.get,
-            "type" -> typeString.get,
-            "identifier" -> _identifier,
-            "data" -> _data,
-            "_url" -> routes.Graph.getPoint(accId, point.id.get).absoluteURL()
-          )
-        )  
-        
-        if(code == 200){
-          Ok(result)
-        }else{
-          // 201
-          Created(result)
+          var point: Point = Point(accId, typeString.get, _identifier, _data)
+          point.id match {
+            case NotAssigned => {
+              Point.add(point) map { id: Long =>
+                point.id = new Id(id)
+                code = 201
+              } getOrElse {
+                InternalServerError(Json.obj(
+                  "status" -> Json.obj(
+                    "code" -> 500,
+                    "message" -> "Point not created. try again"
+                  )
+                ))
+              }
+            }
+            case id: Pk[Long] => {
+              code = 200
+              msg += "Already defined. "
+            }
+          }
+
+          val result: JsObject = Json.obj(
+            "status" -> Json.obj(
+              "code" -> code,
+              "message" -> msg
+            ),
+            "point" -> Json.obj(
+              "id" -> point.id.get,
+              "type" -> typeString.get,
+              "identifier" -> _identifier,
+              "data" -> _data,
+              "_url" -> routes.Graph.getPoint(accId, point.id.get).absoluteURL()
+            )
+          )  
+          
+          if(code == 200){
+            Ok(result)
+          }else{
+            // 201
+            Created(result)
+          }
+          
+        } getOrElse {
+          throw new Exception("""Json object 'point' is required like this: { "point": ... } """)
         }
-        
       } getOrElse {
         throw new Exception("""Json object 'point' is required like this: { "point": ... } """)
       }
@@ -109,37 +113,37 @@ object Graph extends Controller {
     }
   }
 
-  def getPoint(accId: Long, id: Long) = Action { implicit request =>
+  def getPoint(accId: Long, id: Long) = SignedAPI(accId) { implicit request =>
     Point.findOneById(accId, id) map { point: Point =>
-        var _id: Long = point.id.get
-      
-        Ok(Json.obj(
-          "status" -> Json.obj(
-            "code" -> 200,
-            "message" -> ""
-          ),
-          "point" -> Json.obj(
-            "id" -> _id,
-            "type" -> Point.TypeString(point.typeId),
-            "identifier" -> point.identifier,
-            "createdAt" -> point.createdAt,
-            "updatedAt" -> point.updatedAt,
-            "referencedAt" -> point.referencedAt,
-            "data" -> (point.data \ "data"),
-            "_url" -> routes.Graph.getPoint(accId, _id).absoluteURL()
-          )
-        ))  
-      } getOrElse {
-        Application.NotFoundJson(404, "Point not found")
-      }
+      var _id: Long = point.id.get
+    
+      Ok(Json.obj(
+        "status" -> Json.obj(
+          "code" -> 200,
+          "message" -> ""
+        ),
+        "point" -> Json.obj(
+          "id" -> _id,
+          "type" -> Point.TypeString(point.typeId),
+          "identifier" -> point.identifier,
+          "createdAt" -> point.createdAt,
+          "updatedAt" -> point.updatedAt,
+          "referencedAt" -> point.referencedAt,
+          "data" -> (point.data \ "data"),
+          "_url" -> routes.Graph.getPoint(accId, _id).absoluteURL()
+        )
+      ))  
+    } getOrElse {
+      Application.NotFoundJson(404, "Point not found")
+    }
   }
 
-  def getPointTypes(accId: Long) = Action { implicit request =>
+  def getPointTypes(accId: Long) = SignedAPI(accId) { implicit request =>
     val str = Point.getTypes(accId) collect { case s: String => "\"%s\"".format(s) } mkString(", ")
     Ok(Json.parse("[" + str + "]"))
   }
 
-  def getPointLatest(accId: Long) = Action { implicit request =>
+  def getPointLatest(accId: Long) = SignedAPI(accId) { implicit request =>
     val list: List[Point] = Point.findAllByLatest(accId)
     if(list.length == 0){
       Application.NotFoundJson(404, "Point not found")  
@@ -168,7 +172,7 @@ object Graph extends Controller {
       Ok(result)
     }
   }
-  def getPointByTypeOrIdentifier(accId: Long, _typeString: String, _identifier: String, _limit: Int, _offset: Int) = Action { implicit request =>
+  def getPointByTypeOrIdentifier(accId: Long, _typeString: String, _identifier: String, _limit: Int, _offset: Int) = SignedAPI(accId) { implicit request =>
     var typeString: String = _typeString
     var identifier: String = _identifier
     var limit: Int = _limit
@@ -339,77 +343,81 @@ object Graph extends Controller {
     }
   }
    */
-  def linkWithEdge(accId: Long) = Action(parse.json) { implicit request =>
+  def linkWithEdge(accId: Long) = SignedAPI(accId) { implicit request =>
     try {
-      (request.body \ "edge").asOpt[JsObject].map { e =>
-        var _sId = (e \ "subjectId").asOpt[Int]
-        var _v = (e \ "verb").asOpt[String]
-        var _oId = (e \ "objectId").asOpt[Int]
+      request.body.asJson.map { json =>
+        (json \ "edge").asOpt[JsObject].map { e =>
+          var _sId = (e \ "subjectId").asOpt[Int]
+          var _v = (e \ "verb").asOpt[String]
+          var _oId = (e \ "objectId").asOpt[Int]
 
-        var sId = 0L
-        var v = ""
-        var oId = 0L
-        var sTypeId: Long = -1
-        var oTypeId: Long = -1
+          var sId = 0L
+          var v = ""
+          var oId = 0L
+          var sTypeId: Long = -1
+          var oTypeId: Long = -1
 
-        _v match {
-          case Some(verb: String) => {
-            if(verb.length < 3){
-              throw new Exception("point(type=?, id=?) '?' point(type=?, id=?): verb must have at least 3 characters.")
+          _v match {
+            case Some(verb: String) => {
+              if(verb.length < 3){
+                throw new Exception("point(type=?, id=?) '?' point(type=?, id=?): verb must have at least 3 characters.")
+              }
+              if(verb.length > 20){
+                throw new Exception("point(type=?, id=?) '?' point(type=?, id=?): verb must have less than or 20 characters.")
+              }
+              v = verb
             }
-            if(verb.length > 20){
-              throw new Exception("point(type=?, id=?) '?' point(type=?, id=?): verb must have less than or 20 characters.")
-            }
-            v = verb
+            case _ => throw new Exception("point(type,id) '?' point(type,id): no verb is described.")
           }
-          case _ => throw new Exception("point(type,id) '?' point(type,id): no verb is described.")
-        }
-        
+          
 
-        (_sId, _oId) match {
-          case (Some(x: Int), Some(y: Int)) => {
-            sId = x
-            oId = y
-            // optimization code (shard index) comes here.
-            Point.getTypeId(accId, x) match {
-              case Some(id: Long) => {
-                sTypeId = id
+          (_sId, _oId) match {
+            case (Some(x: Int), Some(y: Int)) => {
+              sId = x
+              oId = y
+              // optimization code (shard index) comes here.
+              Point.getTypeId(accId, x) match {
+                case Some(id: Long) => {
+                  sTypeId = id
+                }
+                case _ => {
+                  throw new Exception("unknown point(id=%1$s) '%3$s' point(id=%2$s): subject point isn't found.".format(x, y, v))
+                }
               }
-              case _ => {
-                throw new Exception("unknown point(id=%1$s) '%3$s' point(id=%2$s): subject point isn't found.".format(x, y, v))
+              Point.getTypeId(accId, y) match {
+                case Some(id: Long) => {
+                  oTypeId = id
+                }
+                case _ => {
+                  throw new Exception("point(id=%1$s, type=%4$s) '%3$s' unknown point(id=%2$s): object point isn't found.".format(x, y, v, Point.TypeString(sTypeId)))
+                }
+              }
+              if(sTypeId == oTypeId){
+                throw new Exception("point(id=%1$s, type=%2$s) '%3$s' point(id=%1$s, type=%2$s): no self-reference and iteratable relationship are allowed.".format(x, Point.TypeString(sTypeId), v))
               }
             }
-            Point.getTypeId(accId, y) match {
-              case Some(id: Long) => {
-                oTypeId = id
-              }
-              case _ => {
-                throw new Exception("point(id=%1$s, type=%4$s) '%3$s' unknown point(id=%2$s): object point isn't found.".format(x, y, v, Point.TypeString(sTypeId)))
-              }
-            }
-            if(sTypeId == oTypeId){
-              throw new Exception("point(id=%1$s, type=%2$s) '%3$s' point(id=%1$s, type=%2$s): no self-reference and iteratable relationship are allowed.".format(x, Point.TypeString(sTypeId), v))
-            }
+            case _ => throw new Exception("point(type=?, id=%1$s) '%3$s' point(type=?, id=%2$s): id of point must be a number.".format(sId, oId, v))
           }
-          case _ => throw new Exception("point(type=?, id=%1$s) '%3$s' point(type=?, id=%2$s): id of point must be a number.".format(sId, oId, v))
-        }
-        val edge = Edge(sId, sTypeId, v, oId, oTypeId)
-        Edge.add( edge ) map { id: Long =>
-          Created(Json.obj(
-            "status" -> Json.obj(
-              "code" -> 201,
-              "message" -> "Edge created."
-            )
-          ))
+          val edge = Edge(sId, sTypeId, v, oId, oTypeId)
+          Edge.add( edge ) map { id: Long =>
+            Created(Json.obj(
+              "status" -> Json.obj(
+                "code" -> 201,
+                "message" -> "Edge created."
+              )
+            ))
+          } getOrElse {
+            InternalServerError(Json.obj(
+              "status" -> Json.obj(
+                "code" -> 500,
+                "message" -> {
+                  "Edge not created. Try again."
+                }
+              )
+            ))
+          }
         } getOrElse {
-          InternalServerError(Json.obj(
-            "status" -> Json.obj(
-              "code" -> 500,
-              "message" -> {
-                "Edge not created. Try again."
-              }
-            )
-          ))
+          throw new Exception("point(type=?, id=?) '...' point(type=?, id=?): no points are selected.")
         }
       } getOrElse {
         throw new Exception("point(type=?, id=?) '...' point(type=?, id=?): no points are selected.")
@@ -430,7 +438,7 @@ object Graph extends Controller {
   /*
     /v1/account/1/edge?subjectId=1&subjectType=user&verb=read&objectId=0&objectType=post
    */
-  def findEdges(accId: Long) = Action { implicit request =>
+  def findEdges(accId: Long) = SignedAPI(accId) { implicit request =>
     try {
       val (sI, sT, vOpt, oI, oT) = Form(
         tuple(
@@ -612,6 +620,7 @@ object Graph extends Controller {
     } catch { 
       case e: Exception =>
       e.printStackTrace()
+      println(">> " + request)
         BadRequest(Json.obj(
           "status" -> Json.obj(
             "code" -> 400,

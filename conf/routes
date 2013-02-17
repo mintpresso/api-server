@@ -16,10 +16,10 @@ POST 	/v1/account/:accId/fiter		 	controllers.Query.addFilter(accId: Long)
 POST 	/v1/account/:accId/order 			controllers.Query.addOrder(accId: Long)
 
 # External API
+GET     /v1/account/:accId/point/:pId       controllers.Graph.getPoint(accId: Long, pId: Long)
 GET     /v1/account/:accId/point 	        controllers.Graph.getPointByTypeOrIdentifier(accId: Long, type: String = "", identifier: String = "", limit: Int = 10, offset: Int = 0)
 GET 	/v1/account/:accId/points/type 		controllers.Graph.getPointTypes(accId: Long)
 GET 	/v1/account/:accId/points/latest	controllers.Graph.getPointLatest(accId: Long)
-GET     /v1/account/:accId/point/:pId       controllers.Graph.getPoint(accId: Long, pId: Long)
 POST    /v1/account/:accId/point            controllers.Graph.addPoint(accId: Long)
 
 GET 	/v1/account/:accId/edge 			controllers.Graph.findEdges(accId: Long)
