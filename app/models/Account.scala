@@ -6,6 +6,8 @@ import play.api.Play.current
 import play.api.db.DB
 import java.util.Date
 import play.api.libs.Crypto
+import play.api.mvc._
+import play.api.Logger
 
 case class Account(id: Pk[Any], email: String, name: String, var password: String, api_token: String) {
 }
@@ -87,6 +89,20 @@ object Account {
           update accounts set api_token = {token} where id = {id}
         """
       ).on( 'id -> id, 'token -> token ).execute()
+    }
+  }
+
+  def verifyToken(id: Long, token: String, request: RequestHeader): Boolean = {
+    val d = Crypto.decryptAES(token)
+    val ll = id.toString.length
+    val i = d.substring(0, ll)
+    if(i != id.toString){
+      Logger.warn("Given ID is unmatched with the id signed in token.")
+      false
+    }else{
+      Logger.info("COMPARE: domain(" + request.domain + "), remoteAddress(" + request.remoteAddress + "), filter(" + d.substring(ll) + ") ")
+      //val u: Array[String] = d.substring(ll).split(",")
+      true
     }
   }
 }
