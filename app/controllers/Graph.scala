@@ -396,7 +396,14 @@ object Graph extends Controller with Secured {
    */
   def linkWithEdge(accId: Long) = SignedAPI(accId) { implicit request =>
     try {
-      request.body.asJson.map { json =>
+      var content = request.body.asJson
+      request.queryString.get("json").flatMap(_.headOption) match {
+        case Some(json) => {
+          content = Some(Json.parse(json))
+        }
+        case None => 
+      }
+      content.map { json =>
         (json \ "edge").asOpt[JsObject].map { e =>
           var _sId = (e \ "subjectId").asOpt[Int]
           var _v = (e \ "verb").asOpt[String]
