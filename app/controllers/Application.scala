@@ -23,6 +23,14 @@ object Application extends Controller {
     Ok(views.html.index("Your new application is ready."))
   }
 
+  def JsonStatus(code: Int, message: String = "") = {
+    Json.obj(
+      "status" -> Json.obj(
+        "code" -> code,
+        "message" -> message
+      )
+    )
+  }
   def NotFoundJson(code: Int = 404, message: String = "") = 
     NotFound(Json.obj(
       "status" -> Json.obj(
