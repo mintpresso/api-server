@@ -105,7 +105,8 @@ object Accounts extends Controller with Secured {
           "account" -> Json.obj(
             "id" -> _id,
             "email" -> acc.email,
-            "name" -> acc.name
+            "name" -> acc.name,
+            "api_token" -> acc.api_token
           )
         ))
       }else{
