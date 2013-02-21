@@ -87,11 +87,23 @@ object Graph extends Controller with Secured {
             )
           )  
           
-          if(code == 200){
-            Ok(result)
-          }else{
-            // 201
-            Created(result)
+          request.queryString.get("callback").flatMap(_.headOption) match {
+            case Some(callback) => {
+              if(code == 200){
+                Ok(Jsonp(callback, result))
+              }else{
+                // 201
+                Created(Jsonp(callback, result))
+              }
+            }
+            case None => {
+              if(code == 200){
+                Ok(result)
+              }else{
+                // 201
+                Created(result)
+              }
+            }
           }
           
         } getOrElse {
@@ -102,14 +114,18 @@ object Graph extends Controller with Secured {
       }
     } catch { 
       case e: Exception =>
-        BadRequest(Json.obj(
+        val json = Json.obj(
           "status" -> Json.obj(
             "code" -> 400,
             "message" -> {
               e.getMessage()
             }
           )
-        ))
+        )
+        request.queryString.get("callback").flatMap(_.headOption) match {
+          case Some(callback) => BadRequest(Jsonp(callback, json))
+          case None => BadRequest(json)
+        }
     }
   }
 
@@ -117,7 +133,7 @@ object Graph extends Controller with Secured {
     Point.findOneById(accId, id) map { point: Point =>
       var _id: Long = point.id.get
     
-      Ok(Json.obj(
+      val json = Json.obj(
         "status" -> Json.obj(
           "code" -> 200,
           "message" -> ""
@@ -132,9 +148,16 @@ object Graph extends Controller with Secured {
           "data" -> (point.data \ "data"),
           "_url" -> routes.Graph.getPoint(accId, _id).absoluteURL()
         )
-      ))  
+      )
+      request.queryString.get("callback").flatMap(_.headOption) match {
+        case Some(callback) => Ok(Jsonp(callback, json))
+        case None => Ok(json)
+      }
     } getOrElse {
-      Application.NotFoundJson(404, "Point not found")
+      request.queryString.get("callback").flatMap(_.headOption) match {
+        case Some(callback) => Ok(Jsonp(callback, Application.JsonStatus(404)))
+        case None => Application.NotFoundJson()
+      }
     }
   }
 
@@ -201,8 +224,7 @@ object Graph extends Controller with Secured {
         }
         Point.findOneByTypeIdAndIdentifier(accId, typeId, identifier) map { point: Point =>
           var _id: Long = point.id.get
-      
-          Ok(Json.obj(
+          val json = Json.obj(
             "status" -> Json.obj(
               "code" -> 200,
               "message" -> ""
@@ -217,9 +239,16 @@ object Graph extends Controller with Secured {
               "data" -> point.data,
               "_url" -> routes.Graph.getPoint(accId, _id).absoluteURL()
             )
-          ))  
+          )
+          request.queryString.get("callback").flatMap(_.headOption) match {
+            case Some(callback) => Ok(Jsonp(callback, json))
+            case None => Ok(json)
+          }  
         } getOrElse {
-          Application.NotFoundJson(404, "Point not found")
+          request.queryString.get("callback").flatMap(_.headOption) match {
+            case Some(callback) => Ok(Jsonp(callback, Application.JsonStatus(404)))
+            case None => Application.NotFoundJson()
+          }
         }
       }else if(typeString != ""){
         var typeId: Long = -1
@@ -272,7 +301,10 @@ object Graph extends Controller with Secured {
             "_current" -> current,
             "_next" -> next
             )
-          Ok(result)
+          request.queryString.get("callback").flatMap(_.headOption) match {
+            case Some(callback) => Ok(Jsonp(callback, result))
+            case None => Ok(result)
+          }
         }
       }else if(identifier != ""){
         val list: List[Point] = Point.findAllByIdentifier(accId, identifier, limit, offset)
@@ -318,19 +350,28 @@ object Graph extends Controller with Secured {
             "_current" -> current,
             "_next" -> next
             )
-          Ok(result)
+          request.queryString.get("callback").flatMap(_.headOption) match {
+            case Some(callback) => Ok(Jsonp(callback, result))
+            case None => Ok(result)
+          }
         }
       }else{
         throw new Exception("point(identifier=?, type=?) how can I do for you? ") 
       }
     } catch { 
       case e: Exception =>
-        BadRequest(Json.obj(
+        val json = Json.obj(
           "status" -> Json.obj(
             "code" -> 400,
-            "message" -> e.getMessage()
+            "message" -> {
+              e.getMessage()
+            }
           )
-        ))
+        )
+        request.queryString.get("callback").flatMap(_.headOption) match {
+          case Some(callback) => BadRequest(Jsonp(callback, json))
+          case None => BadRequest(json)
+        }
     }
   }
 
