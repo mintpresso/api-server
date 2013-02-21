@@ -32,7 +32,14 @@ trait Secured {
     ).bindFromRequest.get
     val api_token = _api_token.getOrElse("")
     if(api_token.length == 0 || !Account.verifyToken(accessId, api_token, request)){
-      Results.Forbidden
+      val domain = Play.configuration.getString("mintpresso.panel.domain").getOrElse("localhost")
+      val remoteAddress = Play.configuration.getString("mintpresso.panel.address").getOrElse("127.0.0.1")
+      if(request.domain == domain && request.remoteAddress == remoteAddress){
+        f(request)
+      } else {
+        Logger.info("Access Denied: domain " + request.domain + " == " + domain + " && remoteAddress " + request.remoteAddress + " == " + remoteAddress)
+        Results.Forbidden
+      }
     } else {
       f(request)
     }
