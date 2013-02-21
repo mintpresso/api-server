@@ -458,21 +458,29 @@ object Graph extends Controller with Secured {
           }
           val edge = Edge(sId, sTypeId, v, oId, oTypeId)
           Edge.add( edge ) map { id: Long =>
-            Created(Json.obj(
+            val json = Json.obj(
               "status" -> Json.obj(
                 "code" -> 201,
                 "message" -> "Edge created."
               )
-            ))
+            )
+            request.queryString.get("callback").flatMap(_.headOption) match {
+              case Some(callback) => Created(Jsonp(callback, json))
+              case None => Created(json)
+            }
           } getOrElse {
-            InternalServerError(Json.obj(
+            val json = Json.obj(
               "status" -> Json.obj(
                 "code" -> 500,
                 "message" -> {
                   "Edge not created. Try again."
                 }
               )
-            ))
+            )
+            request.queryString.get("callback").flatMap(_.headOption) match {
+              case Some(callback) => InternalServerError(Jsonp(callback, json))
+              case None => InternalServerError(json)
+            }
           }
         } getOrElse {
           throw new Exception("point(type=?, id=?) '...' point(type=?, id=?): no points are selected.")
@@ -482,14 +490,18 @@ object Graph extends Controller with Secured {
       }
     } catch { 
       case e: Exception =>
-        BadRequest(Json.obj(
+        val json = Json.obj(
           "status" -> Json.obj(
             "code" -> 400,
             "message" -> {
               e.getMessage()
             }
           )
-        ))
+        )
+        request.queryString.get("callback").flatMap(_.headOption) match {
+          case Some(callback) => BadRequest(Jsonp(callback, json))
+          case None => BadRequest(json)
+        }
     }
   }
 
@@ -660,7 +672,7 @@ object Graph extends Controller with Secured {
 
         var array: JsArray = new JsArray()
         list.foreach { edge: Edge =>
-          array = Json.obj( "edge" -> Json.obj(
+          array = Json.obj(
             "subjectId" -> edge.sId,
             "subjectType" -> Point.TypeString(edge.sType),
             "verb" -> edge.v,
@@ -668,7 +680,7 @@ object Graph extends Controller with Secured {
             "objectType" -> Point.TypeString(edge.oType),
             "createdAt" -> edge.createdAt,
             "_url" -> (routes.Graph.findEdges(accId).absoluteURL() + url)
-            )) +: array
+            ) +: array
         }
         var result: JsObject = Json.obj(
           "status" -> Json.obj(
