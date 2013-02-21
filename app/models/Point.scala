@@ -8,7 +8,7 @@ import java.util.Date
 import play.api.libs.json._
 import play.api.libs.json.Json._
 
-case class Point(var id: Pk[Long], accountId: Long, typeId: Long, identifier: String, createdAt: Date, updatedAt: Date, referencedAt: Date, data: JsObject)
+case class Point(var id: Pk[Long], accountId: Long, typeId: Long, identifier: String, createdAt: Date, updatedAt: Date, referencedAt: Date, data: JsValue)
 
 object Point {
   val parser = {
@@ -21,7 +21,7 @@ object Point {
     get[Date]("referencedAt")~ 
     get[String]("data") map {
       case pk~l1~l2~s1~d1~d2~d3~s2 => {
-        new Point(pk, l1, l2, s1, d1, d2, d3, Json.obj( "data" -> Json.parse(s2)))
+        new Point(pk, l1, l2, s1, d1, d2, d3, Json.parse(s2))
       }
     }
   }
