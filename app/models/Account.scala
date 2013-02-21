@@ -100,7 +100,7 @@ object Account {
       Logger.warn("Given ID is unmatched with the id signed in token.")
       false
     }else{
-      Logger.info("COMPARE: domain(" + request.domain + "), remoteAddress(" + request.remoteAddress + "), filter(" + d.substring(ll) + ") ")
+      //Logger.info("COMPARE: domain(" + request.domain + "), remoteAddress(" + request.remoteAddress + "), filter(" + d.substring(ll) + ") ")
       //val u: Array[String] = d.substring(ll).split(",")
       true
     }
