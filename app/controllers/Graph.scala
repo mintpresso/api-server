@@ -27,8 +27,15 @@ object Graph extends Controller with Secured {
   }
    */
   def addPoint(accId: Long) = SignedAPI(accId) { implicit request =>
-    try { 
-      request.body.asJson.map { json =>
+    try {
+      var content = request.body.asJson
+      request.queryString.get("json").flatMap(_.headOption) match {
+        case Some(json) => {
+          content = Some(Json.parse(json))
+        }
+        case None => 
+      }
+      content.map { json =>
         (json \ "point").asOpt[JsObject].map { obj =>
           var code: Int = 0
           var msg: String = ""

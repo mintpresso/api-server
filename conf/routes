@@ -21,6 +21,7 @@ GET     /v1/account/:accId/point 	        controllers.Graph.getPointByTypeOrIden
 GET 	/v1/account/:accId/points/type 		controllers.Graph.getPointTypes(accId: Long)
 GET 	/v1/account/:accId/points/latest	controllers.Graph.getPointLatest(accId: Long)
 POST    /v1/account/:accId/point            controllers.Graph.addPoint(accId: Long)
+GET     /v1/post/account/:accId/point       controllers.Graph.addPoint(accId: Long)
 
 GET 	/v1/account/:accId/edge 			controllers.Graph.findEdges(accId: Long)
 POST 	/v1/account/:accId/edge 			controllers.Graph.linkWithEdge(accId: Long)
