@@ -246,8 +246,8 @@ object Graph extends Controller with Secured {
           }  
         } getOrElse {
           request.queryString.get("callback").flatMap(_.headOption) match {
-            case Some(callback) => Ok(Jsonp(callback, Application.JsonStatus(404)))
-            case None => Application.NotFoundJson()
+            case Some(callback) => Ok(Jsonp(callback, Application.JsonStatus(404, "Point not found")))
+            case None => Application.NotFoundJson(404, "Point not found")
           }
         }
       }else if(typeString != ""){
@@ -309,7 +309,10 @@ object Graph extends Controller with Secured {
       }else if(identifier != ""){
         val list: List[Point] = Point.findAllByIdentifier(accId, identifier, limit, offset)
         if(list.length == 0){
-          Application.NotFoundJson(404, "Point not found")  
+          request.queryString.get("callback").flatMap(_.headOption) match {
+            case Some(callback) => Ok(Jsonp(callback, Application.JsonStatus(404, "Point not found")))
+            case None => Application.NotFoundJson(404, "Point not found")
+          }
         }else{
           var array: JsArray = new JsArray()
           list.foreach { point: Point =>
@@ -628,6 +631,10 @@ object Graph extends Controller with Secured {
 
       if(list.length == 0){
         Application.NotFoundJson(404, "Edge not found")  
+        request.queryString.get("callback").flatMap(_.headOption) match {
+          case Some(callback) => Ok(Jsonp(callback, Application.JsonStatus(404, "Edge not found")))
+          case None => Application.NotFoundJson(404, "Edge not found")
+        }
       }else{
         val url: String = (param.foldLeft(("", 0)){ (a: (String, Any), b: (String, Any)) => 
           var delim = "&"
@@ -656,20 +663,27 @@ object Graph extends Controller with Secured {
             ),
           "edges" -> array
           )
-        Ok(result)
+        request.queryString.get("callback").flatMap(_.headOption) match {
+          case Some(callback) => Ok(Jsonp(callback, result))
+          case None => Ok(result)
+        }
       }
     } catch { 
       case e: Exception =>
-      e.printStackTrace()
-      println(">> " + request)
-        BadRequest(Json.obj(
+        e.printStackTrace()
+        println(">> " + request)
+        val json = Json.obj(
           "status" -> Json.obj(
             "code" -> 400,
             "message" -> {
               e.getMessage()
             }
           )
-        ))
+        )
+        request.queryString.get("callback").flatMap(_.headOption) match {
+          case Some(callback) => BadRequest(Jsonp(callback, json))
+          case None => BadRequest(json)
+        }
     }
   }
 }
