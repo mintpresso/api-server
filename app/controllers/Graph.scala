@@ -202,27 +202,25 @@ object Graph extends Controller with Secured {
       Ok(result)
     }
   }
-  def getPointByTypeOrIdentifier(accId: Long, _typeString: String, _identifier: String, _limit: Int, _offset: Int) = SignedAPI(accId) { implicit request =>
-    var typeString: String = _typeString
-    var identifier: String = _identifier
-    var limit: Int = _limit
-    var offset: Int = _offset
-    try {
-      if(typeString.length == 0 && identifier.length == 0){
-        val (__typeString, __identifier, __l, __o) = Form(
-          tuple(
-            "type" -> optional(text),
-            "identifier" -> optional(text),
-            "limit" -> optional(number(1, 100)),
-            "offset" -> optional(number(0))
-          )
-        ).bindFromRequest.get
-        typeString = __typeString.getOrElse("")
-        identifier = __identifier.getOrElse("")
-        limit = __l.getOrElse(10)
-        offset = __o.getOrElse(0)
+  def getPointByTypeOrIdentifier(accId: Long) = SignedAPI(accId) { implicit request =>
+    var typeString: String = request.queryString.get("type").flatMap(_.headOption).getOrElse("").toString
+    var identifier: String = request.queryString.get("identifier").flatMap(_.headOption).getOrElse("").toString
+    val Number = "([0-9]+)".r
+    var limit: Int = 10
+    var offset: Int = 0
+    request.queryString.get("limit").flatMap(_.headOption).getOrElse(10) match {
+      case Number(_s) => {
+        limit = _s.toInt
       }
-
+      case _ => 
+    }
+    request.queryString.get("offset").flatMap(_.headOption).getOrElse(0) match {
+      case Number(_s) => {
+        offset = _s.toInt
+      }
+      case _ => 
+    }
+    try {
       if(typeString != "" && identifier != ""){
         var typeId: Long = -1
         Point.Type.get(typeString) match {
