@@ -181,7 +181,7 @@ object Graph extends Controller with Secured {
       var array: JsArray = new JsArray()
       list.foreach { point: Point =>
         var _id: Long = point.id.get
-        array = Json.obj( "point" -> Json.obj(
+        array = Json.obj(
           "id" -> _id,
           "type" -> Point.TypeString(point.typeId),
           "identifier" -> point.identifier,
@@ -190,7 +190,7 @@ object Graph extends Controller with Secured {
           "referencedAt" -> point.referencedAt,
           "data" -> point.data,
           "_url" -> routes.Graph.getPoint(accId, _id).absoluteURL()
-        )) +: array
+        ) +: array
       }
       var result: JsObject = Json.obj(
         "status" -> Json.obj(
@@ -243,7 +243,8 @@ object Graph extends Controller with Secured {
               "referencedAt" -> point.referencedAt,
               "data" -> point.data,
               "_url" -> routes.Graph.getPoint(accId, _id).absoluteURL()
-            )
+            ),
+            "length" -> 1
           )
           request.queryString.get("callback").flatMap(_.headOption) match {
             case Some(callback) => Ok(Jsonp(callback, json))
@@ -305,6 +306,7 @@ object Graph extends Controller with Secured {
                 "message" -> ""
               ),
             "points" -> array,
+            "_length" -> list.length, 
             "_previous" -> prev,
             "_current" -> current,
             "_next" -> next
@@ -357,6 +359,7 @@ object Graph extends Controller with Secured {
                 "message" -> ""
               ),
             "points" -> array,
+            "_length" -> list.length,
             "_previous" -> prev,
             "_current" -> current,
             "_next" -> next
@@ -691,7 +694,8 @@ object Graph extends Controller with Secured {
               "code" -> 200,
               "message" -> ""
             ),
-          "edges" -> array
+          "edges" -> array,
+          "_length" -> list.length
           )
         request.queryString.get("callback").flatMap(_.headOption) match {
           case Some(callback) => Ok(Jsonp(callback, result))
