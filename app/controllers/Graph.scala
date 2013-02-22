@@ -590,7 +590,7 @@ object Graph extends Controller with Secured {
       }
 
       // prepare variables and arguments
-      if(v.length < 3){
+      if(v.length == 1 || v.length == 2){
         throw new Exception("edge(?): verb must have at least 3 characters.")
       }
       if(v.length > 20){
@@ -642,9 +642,9 @@ object Graph extends Controller with Secured {
         args = args :+ ("sType", sTypeId)
         param = param :+ ("subjectType", sTypeId)
       }
-      if(v.length > 0){
-        param = param :+ ("verb", v)
-      }
+      // if(v.length > 0){
+      //   param = param :+ ("verb", v)
+      // }
       if(oId != -1){
         args = args :+ ("oId", oId) :+ ("oType", oTypeId)
         param = param :+ ("objectId", oId) :+ ("objectType", oTypeId)
@@ -653,8 +653,11 @@ object Graph extends Controller with Secured {
         param = param :+ ("objectType", oTypeId)
       }
 
-
-      val list: List[Edge] = Edge.find(Some(v), args:_*)
+      var optionVerb: Option[String] = None
+      if(v.length > 0){
+        optionVerb = Some(v)
+      }
+      val list: List[Edge] = Edge.find(optionVerb, args:_*)
 
       if(list.length == 0){
         Application.NotFoundJson(404, "Edge not found")  
