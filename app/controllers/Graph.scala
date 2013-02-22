@@ -271,7 +271,7 @@ object Graph extends Controller with Secured {
           var array: JsArray = new JsArray()
           list.foreach { point: Point =>
             var _id: Long = point.id.get
-            array = Json.obj( "point" -> Json.obj(
+            array = Json.obj(
               "id" -> _id,
               "type" -> Point.TypeString(point.typeId),
               "identifier" -> point.identifier,
@@ -280,7 +280,7 @@ object Graph extends Controller with Secured {
               "referencedAt" -> point.referencedAt,
               "data" -> point.data,
               "_url" -> routes.Graph.getPoint(accId, _id).absoluteURL()
-            )) +: array
+            ) +: array
           }
           
           val current: String = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?type=%s&limit=%d&offset=%d".format(typeString, limit, offset)
@@ -325,7 +325,7 @@ object Graph extends Controller with Secured {
           var array: JsArray = new JsArray()
           list.foreach { point: Point =>
             var _id: Long = point.id.get
-            array = Json.obj( "point" -> Json.obj(
+            array = Json.obj(
               "id" -> _id,
               "type" -> Point.TypeString(point.typeId),
               "identifier" -> point.identifier,
@@ -334,7 +334,7 @@ object Graph extends Controller with Secured {
               "referencedAt" -> point.referencedAt,
               "data" -> point.data,
               "_url" -> routes.Graph.getPoint(accId, _id).absoluteURL()
-            )) +: array
+            ) +: array
           }
           
           val current: String = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?identifier=%s&limit=%d&offset%d".format(identifier, limit, offset)
