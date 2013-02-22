@@ -263,7 +263,10 @@ object Graph extends Controller with Secured {
         }
         val list: List[Point] = Point.findAllByTypeId(accId, typeId, limit, offset)
         if(list.length == 0){
-          Application.NotFoundJson(404, "Point not found")  
+          request.queryString.get("callback").flatMap(_.headOption) match {
+            case Some(callback) => Ok(Jsonp(callback, Application.JsonStatus(404, "Point not found")))
+            case None => Application.NotFoundJson(404, "Point not found")
+          }
         }else{
           var array: JsArray = new JsArray()
           list.foreach { point: Point =>
