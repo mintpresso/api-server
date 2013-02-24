@@ -124,10 +124,11 @@ object Point {
     DB.withConnection { implicit conn =>
       val result: Int = SQL(
         """
-          select count(id) from points where id = {a} or {b}
+          select count(id) from points where (id = {a} or id = {b}) and accountId = {accId} 
         """
       ).on( 'a -> pIdA,
-            'b -> pIdB
+            'b -> pIdB,
+            'accId -> accId
       ).as(scalar[Int].single)
       if(result == 2){
         true
@@ -141,9 +142,9 @@ object Point {
     DB.withConnection { implicit conn =>
       SQL(
         """
-          select typeId from points where id = {id}
+          select typeId from points where id = {id} and accountId = {accId}
         """
-      ).on( 'id -> pId ).as(scalar[Long].singleOpt)
+      ).on( 'id -> pId, 'accId -> accId ).as(scalar[Long].singleOpt)
     }
   }
 
