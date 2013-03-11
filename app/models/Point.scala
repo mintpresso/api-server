@@ -28,10 +28,10 @@ object Point {
   
   def apply(accId: Long, typeString: String, identifier: String, data: JsObject): Point = {
     var typeId: Long = -1
-    PointType.findOneByName(typeString).map { pt =>
+    PointType.findOneByName(typeString) map { pt =>
       typeId = pt.id.get
-    }.getOrElse {
-      PointType.add(PointType(NotAssigned, typeString)).map { id =>
+    } getOrElse {
+      PointType.add(PointType(NotAssigned, typeString)) map { id =>
         typeId = id 
       } getOrElse {        
         throw new Exception("point(type=%1$s) cannot be added.")
