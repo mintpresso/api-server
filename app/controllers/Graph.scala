@@ -187,8 +187,9 @@ object Graph extends Controller with Secured {
   }
 
   def getPointTypes(accId: Long) = SignedAPI(accId) { implicit request =>
-    val str = PointType.findAllByAccountId(accId) mkString(", ")
-    Ok(Json.parse("[" + str + "]"))
+    val listOfPointTypes: Seq[JsString] = PointType.findAllByAccountId(accId) map(JsString)
+    val jsPointTypes = new JsArray(listOfPointTypes)
+    Ok(jsPointTypes)
   }
 
   def getPointLatest(accId: Long) = SignedAPI(accId) { implicit request =>
