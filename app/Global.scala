@@ -5,12 +5,18 @@ import play.api.libs.concurrent._
 import play.api.Play.current
 import controllers.Application
 
+import models.PointType
 import anorm._
 
 object Global extends GlobalSettings {
 
   override def onStart(app: Application) {
     // Logger.info("Application has started")
+    List(
+      PointType(NotAssigned, "user"),
+      PointType(NotAssigned, "page"),
+      PointType(NotAssigned, "post")
+    ) map ( PointType.add )
   }  
   
   override def onStop(app: Application) {

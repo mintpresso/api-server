@@ -25,21 +25,17 @@ object Point {
       }
     }
   }
-  val Type: Map[String, Long] = Map(
-      "user" -> 10,
-      "page" -> 20,
-      "post" -> 30
-    )
-  val TypeString: Map[Long, String] = Map(
-      10L -> "user",
-      20L -> "page",
-      30L -> "post"
-    )
+  
   def apply(accId: Long, typeString: String, identifier: String, data: JsObject): Point = {
     var typeId: Long = -1
-    Point.Type.get(typeString) match {
-      case id: Some[Long] => typeId = id.get
-      case None => throw new Exception("point(identifier=" + identifier + ") type: '" + typeString + "' isn't supported.")
+    PointType.findOneByName(typeString).map { pt =>
+      typeId = pt.id.get
+    }.getOrElse {
+      PointType.add(PointType(NotAssigned, typeString)).map { id =>
+        typeId = id 
+      } getOrElse {        
+        throw new Exception("point(type=%1$s) cannot be added.")
+      }
     }
 
     if(identifier.length > 0){
@@ -109,6 +105,24 @@ object Point {
     }
   }
 
+  def findOneByTypeNameAndIdentifier(accId: Long, typeName: String, identifier: String): Option[Point] = {
+    DB.withConnection { implicit conn =>
+      SQL(
+        """
+          SELECT p.*
+          FROM points p, pointTypes pt
+          WHERE p.typeId = pt.id
+            AND p.accountId = {accId} 
+            AND pt.name = {name}
+            AND p.identifier = {identifier}
+        """
+      ).on( 'accId -> accId, 
+            'name -> typeName, 
+            'identifier -> identifier
+      ).singleOpt(parser)
+    }
+  }
+
   def findAllByLatest(accId: Long): List[Point] = {
     DB.withConnection { implicit conn =>
       SQL(
@@ -146,22 +160,7 @@ object Point {
         """
       ).on( 'id -> pId, 'accId -> accId ).as(scalar[Long].singleOpt)
     }
-  }
-
-  def getTypes(accId: Long): List[String] = {
-    DB.withConnection { implicit conn =>
-      val list: List[Long] = SQL(
-        """
-          select distinct typeId from points where accountId = {id}
-        """
-      ).on( 'id -> accId ).as(
-        long("typeId") *
-      )
-      list collect {
-        case l: Long => TypeString(l).toString
-      }
-    }
-  }
+  } 
 
   def add(point: Point):Option[Long] = {
     DB.withConnection { implicit conn =>
