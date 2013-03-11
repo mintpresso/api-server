@@ -5,6 +5,10 @@ CREATE TABLE pointTypes (
   name varchar(255) NOT NULL
 );
 
+INSERT INTO pointTypes (name) VALUES ('post');
+INSERT INTO pointTypes (name) VALUES ('user');
+INSERT INTO pointTypes (name) VALUES ('page');
+
 # --- !Downs
 
 DROP TABLE pointTypes;

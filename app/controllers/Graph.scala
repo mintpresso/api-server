@@ -213,7 +213,7 @@ object Graph extends Controller with Secured {
               "_url" -> routes.Graph.getPoint(accId, _id).absoluteURL()
             ) +: array
           } getOrElse {
-            throw new Exception("point(identifier=%1$s) is invalid.".format(point.identifier)) 
+            throw new Exception("point type of '%1$s' cannot be found. point(identifier=%1$s) is invalid.".format(point.identifier)) 
           }
         }
         var result: JsObject = Json.obj(
