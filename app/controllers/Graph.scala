@@ -41,10 +41,10 @@ object Graph extends Controller with Secured {
           var code: Int = 0
           var msg: String = ""
 
-          var WordNumber = """([\w\d]+)""".r
+          var Word = """(\w+)""".r
           var typeString = ""
           (obj \ "type").asOpt[String] match {
-            case Some(WordNumber(ts)) => typeString = ts
+            case Some(Word(ts)) => typeString = ts
             case None => throw new Exception("""Json object 'type' is required like this: { "point": {"type": ... } } """)
             case _ => throw new Exception("""Json object 'type' is illegal. point.type should be combination of word and number. """)
           } 
