@@ -135,7 +135,7 @@ object Graph extends Controller with Secured {
           )
         )
         request.queryString.get("callback").flatMap(_.headOption) match {
-          case Some(callback) => BadRequest(Jsonp(callback, json))
+          case Some(callback) => Ok(Jsonp(callback, json))
           case None => BadRequest(json)
         }
     }
@@ -438,7 +438,7 @@ object Graph extends Controller with Secured {
           )
         )
         request.queryString.get("callback").flatMap(_.headOption) match {
-          case Some(callback) => BadRequest(Jsonp(callback, json))
+          case Some(callback) => Ok(Jsonp(callback, json))
           case None => BadRequest(json)
         }
     }
@@ -529,7 +529,7 @@ object Graph extends Controller with Secured {
                   )
                 )
                 request.queryString.get("callback").flatMap(_.headOption) match {
-                  case Some(callback) => InternalServerError(Jsonp(callback, json))
+                  case Some(callback) => Ok(Jsonp(callback, json))
                   case None => InternalServerError(json)
                 }
               }
@@ -555,7 +555,7 @@ object Graph extends Controller with Secured {
           )
         )
         request.queryString.get("callback").flatMap(_.headOption) match {
-          case Some(callback) => BadRequest(Jsonp(callback, json))
+          case Some(callback) => Ok(Jsonp(callback, json))
           case None => BadRequest(json)
         }
     }
@@ -788,13 +788,11 @@ object Graph extends Controller with Secured {
         val json = Json.obj(
           "status" -> Json.obj(
             "code" -> 400,
-            "message" -> {
-              e.getMessage()
-            }
+            "message" -> e.getMessage()
           )
         )
         request.queryString.get("callback").flatMap(_.headOption) match {
-          case Some(callback) => BadRequest(Jsonp(callback, json))
+          case Some(callback) => Ok(Jsonp(callback, json))
           case None => BadRequest(json)
         }
     }
