@@ -501,43 +501,14 @@ object Graph extends Controller with Secured {
                 oId = objectPoint.id.get
                 oTypeId = objectPoint.typeId
               }.getOrElse {
-                throw new Exception("point(type=%1$s, identifier=%2$s) '%3$s' unknown point(type=%4$s, identifier=%5$s): subject point isn't found.".format(edgeContent._4, edgeContent._2, v, edgeContent._5, edgeContent._3))
+                throw new Exception("point(type=%1$s, identifier=%2$s) '%3$s' unknown point(type=%4$s, identifier=%5$s): object point isn't found.".format(edgeContent._4, edgeContent._2, v, edgeContent._5, edgeContent._3))
               }
 
               if(sTypeId == oTypeId){
                 throw new Exception("point(type=%1$s, identifier=%2$s) '%3$s' point(type=%4$s, identifier=%5$s): no self-reference and iteratable relationship are allowed.".format(edgeContent._4, edgeContent._2, v, edgeContent._5, edgeContent._3))
               }
-              /*
-              (_sId, _oId) match {
-                case (Some(x: Int), Some(y: Int)) => {
-                  sId = x
-                  oId = y
-                  // optimization code (shard index) comes here.
-                  Point.getTypeId(accId, x) match {
-                    case Some(id: Long) => {
-                      sTypeId = id
-                    }
-                    case _ => {
-                      throw new Exception("unknown point(id=%1$s) '%3$s' point(id=%2$s): subject point isn't found.".format(x, y, v))
-                    }
-                  }
-                  Point.getTypeId(accId, y) match {
-                    case Some(id: Long) => {
-                      oTypeId = id
-                    }
-                    case _ => {
-                      throw new Exception("point(id=%1$s, type=%4$s) '%3$s' unknown point(id=%2$s): object point isn't found.".format(x, y, v, PointType.findOneById(sTypeId).map(_.name).getOrElse("?")))
-                    }
-                  }
-                  if(sTypeId == oTypeId){
-                    throw new Exception("point(id=%1$s, type=%2$s) '%3$s' point(id=%1$s, type=%2$s): no self-reference and iteratable relationship are allowed.".format(x, PointType.findOneById(sTypeId).map(_.name).getOrElse("?"), v))
-                  }
-                }
-                case _ => throw new Exception("point(type=?, id=%1$s) '%3$s' point(type=?, id=%2$s): id of point must be a number.".format(sId, oId, v))
-              }
-              */
-              val edge = Edge(sId, sTypeId, v, oId, oTypeId)
-              Edge.add( edge ) map { id: Long =>
+              val edge = Edge(accId, sId, sTypeId, v, oId, oTypeId)
+              Edge.add( accId, edge ) map { id: Long =>
                 val json = Json.obj(
                   "status" -> Json.obj(
                     "code" -> 201,
@@ -743,7 +714,7 @@ object Graph extends Controller with Secured {
       if(v.length > 0){
         optionVerb = Some(v)
       }
-      val list: List[Edge] = Edge.find(optionVerb, args:_*)
+      val list: List[Edge] = Edge.find(accId, optionVerb, args:_*)
 
       if(list.length == 0){
         Application.NotFoundJson(404, "Edge not found")  
