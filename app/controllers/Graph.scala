@@ -566,28 +566,32 @@ object Graph extends Controller with Secured {
    */
   def findEdges(accId: Long) = SignedAPI(accId) { implicit request =>
     try {
-      val (sI, sT, vOpt, oI, oT) = Form(
+      val (sI, sT, sS, vOpt, oI, oT, oS) = Form(
         tuple(
           "subjectId" -> optional(longNumber),
           "subjectType" -> optional(text),
+          "subjectIdentifier" -> optional(text),
           "verb" -> optional(text),
           "objectId" -> optional(longNumber),
-          "objectType" -> optional(text)
+          "objectType" -> optional(text),
+          "objectIdentifier" -> optional(text)
         )
       ).bindFromRequest.get
 
-      (sI, sT, vOpt, oI, oT) match {
-        case (None, None, None, None, None) => throw new Exception("edge(subjectId | subjectType | verb | objectId | oType): no description for edge is given.")
+      (sI, sT, sS, vOpt, oI, oT, oS) match {
+        case (None, None, None, None, None, None, None) => throw new Exception("edge(subjectId | subjectType | subjectIdentifier | verb | objectId | objectType | objectIdentifier): no description for edge is given.")
         case _ => 
       }
 
       var sId: Long = sI.getOrElse(-1L)
       var sType = sT.getOrElse("")
       var sTypeId = -1L
+      var sIdentifier = sS.getOrElse("")
       var v = vOpt.getOrElse("")
       var oId = oI.getOrElse(-1L)
       var oType = oT.getOrElse("")
       var oTypeId = -1L
+      var oIdentifier = oS.getOrElse("")
 
       var complexity = 0.0
       var audit: List[(String, Long)] = List()
@@ -598,24 +602,120 @@ object Graph extends Controller with Secured {
       }
       var sDefined = true
       var oDefined = true
+
+      var param: List[(String, Any)] = List()
+
+      if(v.length == 1 || v.length == 2){
+        param = param :+ ("verb", v)
+        throw new Exception("edge(?): verb must have at least 3 characters.")
+      }
+      if(v.length > 20){
+        param = param :+ ("verb", v)
+        throw new Exception("edge(?): verb must have less than or 20 characters.")
+      }
+      
+      if(sId != -1){
+        param = param :+ ("subjectId", sId)
+        Point.getTypeId(accId, sId) match {
+          case Some(id: Long) => {
+            sTypeId = id
+          }
+          case _ => {
+            // sId = -1
+            throw new Exception("unknown point(id=%1$s): subject point isn't found.".format(sId))
+          }
+        }
+      }
+
+      if(oId != -1){
+        param = param :+ ("objectId", oId)
+        Point.getTypeId(accId, oId) match {
+          case Some(id: Long) => {
+            oTypeId = id
+          }
+          case _ => {
+            // oId = -1
+            throw new Exception("unknown point(id=%1$s): object point isn't found.".format(oId))
+          }
+        }
+      }
+
+      if(sType.length > 0){
+        PointType.findOneByName(sType).map { pt =>
+          sTypeId = pt.id.get
+          param = param :+ ("subjectType", pt.name)
+          if(sIdentifier.length > 0){
+            Point.findOneByTypeIdAndIdentifier(accId, sTypeId, sIdentifier).map { point =>
+              sId = point.id.get
+              param = param :+ ("subjectIdentifier", point.identifier)
+            }.getOrElse {
+              // sIdentifier = ""
+              throw new Exception("edge(?): subject identifier of '%1$s' cannot be found.".format(sIdentifier))
+            }
+          }
+        }.getOrElse {
+          // sType = ""
+          throw new Exception("edge(?): subject type of '%1$s' isn't supported.".format(sType))
+        }
+      }
+
+      if(oType.length > 0){
+        PointType.findOneByName(oType).map { pt =>
+          oTypeId = pt.id.get
+          param = param :+ ("objectType", pt.name)
+          if(oIdentifier.length > 0){
+            Point.findOneByTypeIdAndIdentifier(accId, oTypeId, oIdentifier).map { point =>
+              oId = point.id.get
+              param = param :+ ("objectIdentifier", point.identifier)
+            }.getOrElse {
+              // oIdentifier = ""
+              throw new Exception("edge(?): object identifier of '%1$s' cannot be found.".format(oIdentifier))
+            }
+          }
+        }.getOrElse {
+          // oType = ""
+          throw new Exception("edge(?): object type of '%1$s' isn't supported.".format(oType))
+        }
+      }
+
       if(sId == -1){
         if(sType.length == 0){
-          complexity += 2 
-          sDefined = false
-          audit = ("no subject id & type = 2", 2L) +: audit
+          if(sIdentifier.length == 0){
+            complexity += 2 
+            sDefined = false
+            audit = ("no subject id & identifier & type = 2", 2L) +: audit
+          }else{
+            complexity += 0.7 
+            audit = ("no subject id & type but identifier = 0.7", 2L) +: audit
+          }
         }else{
-          complexity += 1
-          audit = ("no subject id but type is = 1", 1L) +: audit
+          if(sIdentifier.length == 0){
+            complexity += 1
+            audit = ("no subject id & identifier but type is = 1", 1L) +: audit
+          }else{
+            // sDefined = true
+            // type + identifier = id
+          }
         }
       }
       if(oId == -1){
         if(oType.length == 0){
-          complexity += 2 
-          oDefined = false
-          audit = ("no object id & type = 2", 2L) +: audit
+          if(oIdentifier.length == 0){
+            complexity += 2 
+            oDefined = false
+            audit = ("no object id & identifier & type = 2", 2L) +: audit
+          }else{
+            complexity += 0.7
+            audit = ("no object id & type but identifier = 0.7", 2L) +: audit
+          }
         }else{
-          complexity += 1
-          audit = ("no object id but type is = 1", 1L) +: audit
+          if(oIdentifier.length == 0){
+            complexity += 1
+            audit = ("no object id but type is = 1", 1L) +: audit
+          }else{
+            // oDefined = true
+            // type + identifier = id
+          }
         }
       }
 
@@ -645,53 +745,13 @@ object Graph extends Controller with Secured {
       }
 
       // prepare variables and arguments
-      if(v.length == 1 || v.length == 2){
-        throw new Exception("edge(?): verb must have at least 3 characters.")
-      }
-      if(v.length > 20){
-        throw new Exception("edge(?): verb must have less than or 20 characters.")
-      }
-
-      if(sId != -1){
-        Point.getTypeId(accId, sId) match {
-          case Some(id: Long) => {
-            sTypeId = id
-          }
-          case _ => {
-            throw new Exception("unknown point(id=%1$s): subject point isn't found.".format(sId))
-          }
-        }
-      }else if(sType.length > 0){
-        PointType.findOneByName(sType).map { pt =>
-          sTypeId = pt.id.get
-        }.getOrElse {
-          throw new Exception("edge(?): subject type of '%1$s' isn't supported.".format(sType))
-        }
-      }
-
-      if(oId != -1){
-        Point.getTypeId(accId, oId) match {
-          case Some(id: Long) => {
-            oTypeId = id
-          }
-          case _ => {
-            throw new Exception("unknown point(id=%1$s): object point isn't found.".format(oId))
-          }
-        }
-      }else if(oType.length > 0){
-        PointType.findOneByName(oType) map { pt =>
-          oTypeId = pt.id.get
-        } getOrElse {
-          throw new Exception("edge(?): object type of '%1$s' isn't supported.".format(oType))
-        }
-      }
-
+      
       // find cache
 
       // generate new query for search
       var args: List[(String, Long)] = List()
-      var param: List[(String, Any)] = List()
 
+      println("QUERY: %s / %s".format(sId, sTypeId))
       if(sId != -1){
         args = args :+ ("sId", sId) :+ ("sType", sTypeId)
         param = param :+ ("subjectId", sId) :+ ("subjectType", sTypeId)
@@ -699,15 +759,18 @@ object Graph extends Controller with Secured {
         args = args :+ ("sType", sTypeId)
         param = param :+ ("subjectType", sTypeId)
       }
-      // if(v.length > 0){
-      //   param = param :+ ("verb", v)
-      // }
+      if(v.length > 0){
+        param = param :+ ("verb", v)
+      }
       if(oId != -1){
         args = args :+ ("oId", oId) :+ ("oType", oTypeId)
         param = param :+ ("objectId", oId) :+ ("objectType", oTypeId)
       }else if(oTypeId != -1){
         args = args :+ ("oType", oTypeId)
         param = param :+ ("objectType", oTypeId)
+      }
+      if(oIdentifier.length > 0){
+        param = param :+ ("objectIdentifier", oIdentifier) 
       }
 
       var optionVerb: Option[String] = None
@@ -717,7 +780,6 @@ object Graph extends Controller with Secured {
       val list: List[Edge] = Edge.find(accId, optionVerb, args:_*)
 
       if(list.length == 0){
-        Application.NotFoundJson(404, "Edge not found")  
         request.queryString.get("callback").flatMap(_.headOption) match {
           case Some(callback) => Ok(Jsonp(callback, Application.JsonStatus(404, "Edge not found")))
           case None => Application.NotFoundJson(404, "Edge not found")
