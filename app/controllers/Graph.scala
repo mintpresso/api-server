@@ -283,7 +283,7 @@ object Graph extends Controller with Secured {
               "data" -> point.data,
               "_url" -> routes.Graph.getPoint(accId, _id).absoluteURL()
             ),
-            "length" -> 1
+            "_length" -> 1
           )
           request.queryString.get("callback").flatMap(_.headOption) match {
             case Some(callback) => Ok(Jsonp(callback, json))
