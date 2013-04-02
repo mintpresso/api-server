@@ -564,34 +564,20 @@ object Graph extends Controller with Secured {
   /*
     /v1/account/1/edge?subjectId=1&subjectType=user&verb=read&objectId=0&objectType=post
    */
-  def findEdges(accId: Long) = SignedAPI(accId) { implicit request =>
+  def findEdges(  accId: Long, subjectId: Long = -1,
+      subjectType: String = "", subjectIdentifier: String = "",
+      verb: String = "", objectId: Long = -1L, objectType: String = "",
+      objectIdentifier: String = "") = SignedAPI(accId) { implicit request =>
     try {
-      val (sI, sT, sS, vOpt, oI, oT, oS) = Form(
-        tuple(
-          "subjectId" -> optional(longNumber),
-          "subjectType" -> optional(text),
-          "subjectIdentifier" -> optional(text),
-          "verb" -> optional(text),
-          "objectId" -> optional(longNumber),
-          "objectType" -> optional(text),
-          "objectIdentifier" -> optional(text)
-        )
-      ).bindFromRequest.get
-
-      (sI, sT, sS, vOpt, oI, oT, oS) match {
-        case (None, None, None, None, None, None, None) => throw new Exception("edge(subjectId | subjectType | subjectIdentifier | verb | objectId | objectType | objectIdentifier): no description for edge is given.")
-        case _ => 
-      }
-
-      var sId: Long = sI.getOrElse(-1L)
-      var sType = sT.getOrElse("")
-      var sTypeId = -1L
-      var sIdentifier = sS.getOrElse("")
-      var v = vOpt.getOrElse("")
-      var oId = oI.getOrElse(-1L)
-      var oType = oT.getOrElse("")
-      var oTypeId = -1L
-      var oIdentifier = oS.getOrElse("")
+      var sId: Long     = subjectId
+      var sType         = subjectType
+      var sTypeId       = -1L
+      var sIdentifier   = subjectIdentifier
+      var v             = verb
+      var oId           = objectId
+      var oType         = objectType
+      var oTypeId       = -1L
+      var oIdentifier   = objectIdentifier
 
       var complexity = 0.0
       var audit: List[(String, Long)] = List()
@@ -827,7 +813,7 @@ object Graph extends Controller with Secured {
             "objectId" -> edge.oId,
             "objectType" -> objectType,
             "createdAt" -> edge.createdAt,
-            "_url" -> (routes.Graph.findEdges(accId).absoluteURL() + url)
+            "_url" -> (routes.Graph.findEdges(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL() + url)
             ) +: array
         }
         var result: JsObject = Json.obj(
