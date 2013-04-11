@@ -18,3 +18,5 @@ logs
 *.log
 
 RUNNING_PID
+
+*.log
