@@ -2,7 +2,7 @@
 
 CREATE TABLE pointTypes (
   id bigint(20) NOT NULL PRIMARY KEY AUTO_INCREMENT,
-  name varchar(255) NOT NULL
+  name varchar(200) NOT NULL
 );
 
 INSERT INTO pointTypes (name) VALUES ('post');
