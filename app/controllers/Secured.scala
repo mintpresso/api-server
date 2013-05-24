@@ -59,7 +59,7 @@ trait Secured {
                       }
                     }
                     case _ => {
-                      Logger.info("FAILED - find token")
+                      Logger.warn("FAILED - find token")
                       Results.Forbidden
                     }
                   }
