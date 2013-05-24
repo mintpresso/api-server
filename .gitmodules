@@ -1,0 +1,3 @@
+[submodule "affogato"]
+	path = affogato
+	url = git://github.com/mintpresso/affogato.git
