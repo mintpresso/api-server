@@ -22,6 +22,7 @@ import play.api.cache._
 **/
 
 trait Secured {
+  val mintpresso: Affogato = Affogato( Play.configuration.getString("mintpresso.internal.api").getOrElse(""), Play.configuration.getString("mintpresso.internal.id").getOrElse("0").toLong)
   private var accountId: Long = -1L
 
   def getAccountId(): Long = accountId
@@ -31,45 +32,50 @@ trait Secured {
     if(request.domain == domain && request.remoteAddress == remoteAddress){
       f(request)
     }else{
-      request.queryString.get("api_token").flatMap(_.headOption) match {
-        case Some(token) => {
-          if(token.length == 0){
-            Logger.info("Access Denied: zero-length token")
+      mintpresso.get(accessId) match {
+        case Some(account) => {
+          var key = request.queryString.get("api_token").flatMap(_.headOption).getOrElse("")
+          if(key.length == 0){
+            Logger.info("Account("+account.identifier+") zero-length key")
             Results.Forbidden
           }else{
-            val ll = accessId.toString.length
-            val i = token.substring(0, ll)
-            if(i != accessId.toString){
-              Logger.warn("Given ID is unmatched with the id signed in token.")
+            val len = accessId.toString.length
+            val part = key.substring(0, len)
+            if(part != len.toString){
+              Logger.info("Account("+account.identifier+") signed id unmatch")
               Results.Forbidden
             }else{
-              Results.Async {
-                MintpressoAPI("internal").findByTypeAndIdentifier("token", token).map { res =>
-                  res.status match {
-                    case 200 => {
-                      val json = Json.parse(res.body)
-                      val expired = (json \ "point" \ "data" \ "expired").as[Boolean]
-                      val urls: List[String] = (json \ "point" \ "data" \ "url").as[String].split('|').toList
-                      if(expired){
-                        Logger.info("FAILED - expired token " + res.body)
-                        Results.Forbidden
-                      }else{
-                        Logger.info("COMPARE DISABLED: domain(" + request.domain + "), remoteAddress(" + request.remoteAddress + "), filter(" + urls.toString + ") ")
-                        f(request)
-                      }
-                    }
-                    case _ => {
-                      Logger.warn("FAILED - find token")
+              // get token
+              mintpresso.get("token", key).as[Option[Point]] match {
+                case Some(token) => {
+                  // parse domain list
+                  val json = Json.parse(token.data)
+                  // check whether it has been expired
+                  if( (json \ "expired").asOpt[Boolean].getOrElse(true) == true ){
+                    Logger.info("Account("+account.identifier+") token("+key+") expired")
+                    Results.Forbidden
+                  }else{
+                    val urls: Array[String] = (json \ "url").asOpt[String].getOrElse("*").split(",")
+                    val list: Array[String] = (json \ "address").asOpt[String].getOrElse("").split(",")
+                    // allow all(*) or given addresses
+                    if( urls.contains("*") || list.contains(remoteAddress)){
+                      f(request)
+                    }else{
+                      Logger.info("Account("+account.identifier+") token("+key+") address("+remoteAddress+") denied")
                       Results.Forbidden
                     }
                   }
+                }
+                case None => {
+                  Logger.info("Account("+account.identifier+") token("+key+") not found")
+                  Results.Forbidden
                 }
               }
             }
           }
         }
         case None => {
-          Logger.info("Access Denied: no token given")
+          Logger.info("Account(None)")
           Results.Forbidden
         }
       }
