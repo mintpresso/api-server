@@ -30,19 +30,47 @@ trait Secured {
     val domain = Play.configuration.getString("mintpresso.panel.domain").getOrElse("localhost")
     val remoteAddress = Play.configuration.getString("mintpresso.panel.address").getOrElse("127.0.0.1")
     if(request.domain == domain && request.remoteAddress == remoteAddress){
+      // logging will be recursive
+      // mintpresso.set(Map[Symbol, String](
+      //   'request -> java.util.UUID.randomUUID().toString,
+      //   'domain -> request.domain,
+      //   'remoteAddress -> request.remoteAddress,
+      //   'url -> request.uri,
+      //   'local -> "true"
+      // )).as[Option[Point]] match {
+      //   case Some(point) => mintpresso.set("user", "support@mintpresso.com", "log", "request", point.identifier)
+      //   case None => {}
+      // }
       f(request)
     }else{
       mintpresso.get(accessId) match {
         case Some(account) => {
           var key = request.queryString.get("api_token").flatMap(_.headOption).getOrElse("")
+          val logInfo = ('domain -> request.domain, 'remoteAddress -> request.remoteAddress, 'url -> request.uri, 'token -> key)
           if(key.length == 0){
-            Logger.info("Account("+account.identifier+") zero-length key")
+            val uuid = java.util.UUID.randomUUID().toString
+            mintpresso.set(Map[Symbol, String](
+              'warning -> uuid,
+              'message -> "zero-length key",
+              logInfo._1, logInfo._2, logInfo._3, logInfo._4
+            )).as[Option[Point]] match {
+              case Some(point) => mintpresso.set("user", account.identifier, "log", "warning", uuid)
+              case None => Logger.info("Not logged. Account("+account.identifier+") zero-length key")
+            }
             Results.Forbidden
           }else{
             val len = accessId.toString.length
             val part = key.substring(0, len)
             if(part != len.toString){
-              Logger.info("Account("+account.identifier+") signed id unmatch")
+              val uuid = java.util.UUID.randomUUID().toString
+              mintpresso.set(Map[Symbol, String](
+                'warning -> uuid,
+                'message -> "signed id unmatch",
+                logInfo._1, logInfo._2, logInfo._3, logInfo._4
+              )).as[Option[Point]] match {
+                case Some(point) => mintpresso.set("user", account.identifier, "log", "warning", uuid)
+                case None => Logger.info("Not logged. Account("+account.identifier+") signed id unmatch")
+              }
               Results.Forbidden
             }else{
               // get token
@@ -52,22 +80,54 @@ trait Secured {
                   val json = Json.parse(token.data)
                   // check whether it has been expired
                   if( (json \ "expired").asOpt[Boolean].getOrElse(true) == true ){
-                    Logger.info("Account("+account.identifier+") token("+key+") expired")
+                    val uuid = java.util.UUID.randomUUID().toString
+                    mintpresso.set(Map[Symbol, String](
+                      'warning -> uuid,
+                      'message -> "token expired",
+                      logInfo._1, logInfo._2, logInfo._3, logInfo._4
+                    )).as[Option[Point]] match {
+                      case Some(point) => mintpresso.set("user", account.identifier, "log", "warning", uuid)
+                      case None => Logger.info("Not logged. Account("+account.identifier+") token("+key+") expired")
+                    }
                     Results.Forbidden
                   }else{
                     val urls: Array[String] = (json \ "url").asOpt[String].getOrElse("*").split("|")
                     val list: Array[String] = (json \ "address").asOpt[String].getOrElse("").split("|")
                     // allow all(*) or given addresses
                     if( urls.contains("*") || list.contains(remoteAddress)){
+                      val uuid = java.util.UUID.randomUUID().toString
+                      mintpresso.set(Map[Symbol, String](
+                        'request -> uuid,
+                        logInfo._1, logInfo._2, logInfo._3, logInfo._4
+                      )).as[Option[Point]] match {
+                        case Some(point) => mintpresso.set("user", account.identifier, "log", "request", uuid)
+                        case None => Logger.info("Account("+account.identifier+") token("+key+") address("+remoteAddress+") requested")
+                      }
                       f(request)
                     }else{
-                      Logger.info("Account("+account.identifier+") token("+key+") address("+remoteAddress+") denied")
+                      val uuid = java.util.UUID.randomUUID().toString
+                      mintpresso.set(Map[Symbol, String](
+                        'warning -> uuid,
+                        'message -> "address denied",
+                        logInfo._1, logInfo._2, logInfo._3, logInfo._4
+                      )).as[Option[Point]] match {
+                        case Some(point) => mintpresso.set("user", account.identifier, "log", "warning", uuid)
+                        case None => Logger.info("Account("+account.identifier+") token("+key+") address("+remoteAddress+") denied")
+                      }
                       Results.Forbidden
                     }
                   }
                 }
                 case None => {
-                  Logger.info("Account("+account.identifier+") token("+key+") not found")
+                  val uuid = java.util.UUID.randomUUID().toString
+                  mintpresso.set(Map[Symbol, String](
+                    'warning -> uuid,
+                    'message -> "token not found",
+                    logInfo._1, logInfo._2, logInfo._3, logInfo._4
+                  )).as[Option[Point]] match {
+                    case Some(point) => mintpresso.set("user", account.identifier, "log", "warning", uuid)
+                    case None => Logger.info("Account("+account.identifier+") token("+key+") not found")
+                  }
                   Results.Forbidden
                 }
               }
