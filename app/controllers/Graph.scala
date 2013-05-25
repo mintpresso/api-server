@@ -567,7 +567,7 @@ object Graph extends Controller with Secured {
   def findEdges(  accId: Long, subjectId: Long = -1,
       subjectType: String = "", subjectIdentifier: String = "",
       verb: String = "", objectId: Long = -1L, objectType: String = "",
-      objectIdentifier: String = "") = SignedAPI(accId) { implicit request =>
+      objectIdentifier: String = "", useModels: Boolean = false) = SignedAPI(accId) { implicit request =>
     try {
       var sId: Long     = subjectId
       var sType         = subjectType
@@ -806,15 +806,52 @@ object Graph extends Controller with Secured {
           }.getOrElse {
             throw new Exception("edge(oId=%1$s): subject type of '%2$s' isn't supported.".format(edge.oId, edge.oType))
           }
-          array = Json.obj(
-            "subjectId" -> edge.sId,
-            "subjectType" -> subjectType,
-            "verb" -> edge.v,
-            "objectId" -> edge.oId,
-            "objectType" -> objectType,
-            "createdAt" -> edge.createdAt,
-            "_url" -> (routes.Graph.findEdges(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL() + url)
-            ) +: array
+          if(useModels == true){
+            var sModel: Point = Point.findOneById(accId, edge.sId).get
+            var sModelType = PointType.findOneById(sModel.typeId).get.name
+            var oModel: Point = Point.findOneById(accId, edge.oId).get
+            var oModelType = PointType.findOneById(oModel.typeId).get.name
+
+            array = Json.obj(
+              "subjectId" -> edge.sId,
+              "subjectType" -> subjectType,
+              "subject" -> Json.obj(
+                "id" -> sModel.id.get.toLong,
+                "type" -> sModelType,
+                "identifier" -> sModel.identifier,
+                "createdAt" -> sModel.createdAt,
+                "updatedAt" -> sModel.updatedAt,
+                "referencedAt" -> sModel.referencedAt,
+                "data" -> sModel.data,
+                "_url" -> routes.Graph.getPoint(accId, sModel.id.get.toLong).absoluteURL()
+              ),
+              "verb" -> edge.v,
+              "objectId" -> edge.oId,
+              "objectType" -> objectType,
+              "object" -> Json.obj(
+                "id" -> oModel.id.get.toLong,
+                "type" -> oModelType,
+                "identifier" -> oModel.identifier,
+                "createdAt" -> oModel.createdAt,
+                "updatedAt" -> oModel.updatedAt,
+                "referencedAt" -> oModel.referencedAt,
+                "data" -> oModel.data,
+                "_url" -> routes.Graph.getPoint(accId, oModel.id.get.toLong).absoluteURL()
+              ),
+              "createdAt" -> edge.createdAt,
+              "_url" -> (routes.Graph.findEdges(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL() + url)
+            ) +: array 
+          }else{
+            array = Json.obj(
+              "subjectId" -> edge.sId,
+              "subjectType" -> subjectType,
+              "verb" -> edge.v,
+              "objectId" -> edge.oId,
+              "objectType" -> objectType,
+              "createdAt" -> edge.createdAt,
+              "_url" -> (routes.Graph.findEdges(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL() + url)
+            ) +: array 
+          }
         }
         var result: JsObject = Json.obj(
           "status" -> Json.obj(
