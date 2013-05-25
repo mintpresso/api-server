@@ -55,8 +55,8 @@ trait Secured {
                     Logger.info("Account("+account.identifier+") token("+key+") expired")
                     Results.Forbidden
                   }else{
-                    val urls: Array[String] = (json \ "url").asOpt[String].getOrElse("*").split(",")
-                    val list: Array[String] = (json \ "address").asOpt[String].getOrElse("").split(",")
+                    val urls: Array[String] = (json \ "url").asOpt[String].getOrElse("*").split("|")
+                    val list: Array[String] = (json \ "address").asOpt[String].getOrElse("").split("|")
                     // allow all(*) or given addresses
                     if( urls.contains("*") || list.contains(remoteAddress)){
                       f(request)
