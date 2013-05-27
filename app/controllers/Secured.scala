@@ -85,6 +85,7 @@ trait Secured {
                 case Some(token) => {
                   // parse domain list
                   val json = Json.parse(token.data)
+
                   // check whether it has been expired
                   if( (json \ "expired").asOpt[Boolean].getOrElse(true) == true ){
                     val uuid = java.util.UUID.randomUUID().toString
@@ -102,8 +103,8 @@ trait Secured {
                     }
                     Results.Forbidden
                   }else{
-                    val urls: Array[String] = (json \ "url").asOpt[String].getOrElse("*").split("|")
-                    val list: Array[String] = (json \ "address").asOpt[String].getOrElse("").split("|")
+                    val urls: Array[String] = (json \ "url").asOpt[String].getOrElse("*").split('|')
+                    val list: Array[String] = (json \ "address").asOpt[String].getOrElse("").split('|')
                     // allow all(*) or given addresses
                     if( urls.contains("*") || list.contains(remoteAddress)){
                       val uuid = java.util.UUID.randomUUID().toString
