@@ -146,7 +146,14 @@ trait Secured {
                         "domain" -> request.domain,
                         "remoteAddress" -> request.remoteAddress,
                         "url" -> request.uri,
-                        "token" -> key
+                        "token" -> key,
+                        "address" -> {
+                          var a = Json.arr()
+                          list.foreach { i => 
+                            a :+= JsString(i)
+                          }
+                          a
+                        }
                       ).toString, "", 0, 0, 0)
 
                       mintpresso.set(p) match {
