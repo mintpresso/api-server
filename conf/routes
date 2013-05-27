@@ -17,7 +17,7 @@ GET 	/v1/account/:accId/points/latest	controllers.Graph.getPointLatest(accId: Lo
 POST  /v1/account/:accId/point          controllers.Graph.addPoint(accId: Long)
 GET   /v1/post/account/:accId/point     controllers.Graph.addPoint(accId: Long)
 
-GET 	/v1/account/:accId/edge 			    controllers.Graph.findEdges(accId: Long, subjectId: Long ?= -1L, subjectType: String ?= "", subjectIdentifier: String ?= "", verb: String ?= "", objectId: Long ?= -1L, objectType: String ?= "", objectIdentifier: String ?= "", getInnerPoint: Boolean ?= false)
+GET 	/v1/account/:accId/edge 			    controllers.Graph.findEdges(accId: Long, subjectId: Long ?= -1L, subjectType: String ?= "", subjectIdentifier: String ?= "", verb: String ?= "", objectId: Long ?= -1L, objectType: String ?= "", objectIdentifier: String ?= "", getInnerPoints: Boolean ?= false)
 POST 	/v1/account/:accId/edge 			    controllers.Graph.linkWithEdge(accId: Long)
 GET 	/v1/post/account/:accId/edge 		  controllers.Graph.linkWithEdge(accId: Long)
 
