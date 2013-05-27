@@ -166,7 +166,7 @@ object Edge {
     }
   }
 
-  def add(accountId: Long, edge: Edge): Option[Long] = {
+  def add(edge: Edge): Option[Long] = {
     DB.withConnection { implicit conn =>
       SQL(
         """
@@ -180,7 +180,7 @@ object Edge {
         'oId -> edge.oId,
         'oType -> edge.oType,
         'createdAt -> edge.createdAt,
-        'accountId -> accountId
+        'accountId -> edge.accountId
       ).executeInsert()
       Some(0L)
     }
