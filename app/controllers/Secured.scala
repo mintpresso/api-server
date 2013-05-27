@@ -105,8 +105,9 @@ trait Secured {
                   }else{
                     val urls: Array[String] = (json \ "url").asOpt[String].getOrElse("*").split('|')
                     val list: Array[String] = (json \ "address").asOpt[String].getOrElse("").split('|')
+
                     // allow all(*) or given addresses
-                    if( urls.contains("*") || list.contains(remoteAddress)){
+                    if( urls.contains("*") || list.contains(request.remoteAddress)){
                       val uuid = java.util.UUID.randomUUID().toString
                       
                       // var json = Json.obj(
@@ -125,7 +126,7 @@ trait Secured {
                         'domain -> request.domain, 'remoteAddress -> request.remoteAddress, 'url -> request.uri, 'token -> key
                       )).as[Option[Point]] match {
                         case Some(point) => mintpresso.set("user", account.identifier, "log", "request", uuid)
-                        case None => Logger.info("Account("+account.identifier+") token("+key+") address("+remoteAddress+") requested")
+                        case None => Logger.info("Account("+account.identifier+") token("+key+") address("+request.remoteAddress+") requested")
                       }
 
                       // mintpresso.set(Map[String, String](
@@ -158,7 +159,7 @@ trait Secured {
 
                       mintpresso.set(p) match {
                         case Some(point) => mintpresso.set("user", account.identifier, "log", "warning", uuid)
-                        case None => Logger.info("Account("+account.identifier+") token("+key+") address("+remoteAddress+") denied")
+                        case None => Logger.info("Account("+account.identifier+") token("+key+") address("+request.remoteAddress+") denied")
                       }
                       Results.Forbidden
                     }
