@@ -749,10 +749,10 @@ object Graph extends Controller with Secured {
         audit = ("no models = 2", 2L) +: audit
       }
 
-      val sum = audit.foldLeft(("Audit logs: \n", 0L)){ (a: (String, Long), b: (String, Long)) =>
-        (a._1 + "\t" + b._1 + "\n", a._2 + b._2)
-      }
-      println("Comp = " + sum._2 + "\n" + sum._1)
+      // val sum = audit.foldLeft(("Audit logs: \n", 0L)){ (a: (String, Long), b: (String, Long)) =>
+      //   (a._1 + "\t" + b._1 + "\n", a._2 + b._2)
+      // }
+      // println("Comp = " + sum._2 + "\n" + sum._1)
 
       val maxComplexity = 9
       /*
@@ -787,7 +787,7 @@ object Graph extends Controller with Secured {
       // generate new query for search
       var args: List[(String, Long)] = List()
 
-      println("QUERY: %s / %s".format(sId, sTypeId))
+      // println("QUERY: %s / %s".format(sId, sTypeId))
       if(sId != -1){
         args = args :+ ("sId", sId) :+ ("sType", sTypeId)
         param = param :+ ("subjectId", sId) :+ ("subjectType", sTypeId)
