@@ -48,14 +48,15 @@ trait Secured {
           var key = request.queryString.get("api_token").flatMap(_.headOption).getOrElse("")
           if(key.length == 0){
             val uuid = java.util.UUID.randomUUID().toString
-            mintpresso.set(Map[Symbol, String](
-              'warning -> uuid,
-              'message -> "zero-length key",
-              'domain -> request.domain,
-              'remoteAddress -> request.remoteAddress,
-              'url -> request.uri,
-              'token -> key
-            )).as[Option[Point]] match {
+            val p = Point(0, "warning", uuid, Json.obj(
+                "message" -> "zero-length key",
+                "domain" -> request.domain,
+                "remoteAddress" -> request.remoteAddress,
+                "url" -> request.uri,
+                "token" -> key
+              ).toString, "", 0, 0, 0)
+
+            mintpresso.set(p) match {
               case Some(point) => mintpresso.set("user", account.identifier, "log", "warning", uuid)
               case None => Logger.info("Not logged. Account("+account.identifier+") zero-length key")
             }
@@ -65,11 +66,15 @@ trait Secured {
             val part = key.substring(0, len)
             if(part != len.toString){
               val uuid = java.util.UUID.randomUUID().toString
-              mintpresso.set(Map[Symbol, String](
-                'warning -> uuid,
-                'message -> "signed id unmatch",
-                'domain -> request.domain, 'remoteAddress -> request.remoteAddress, 'url -> request.uri, 'token -> key
-              )).as[Option[Point]] match {
+              val p = Point(0, "warning", uuid, Json.obj(
+                "message" -> "signed id unmatch",
+                "domain" -> request.domain,
+                "remoteAddress" -> request.remoteAddress,
+                "url" -> request.uri,
+                "token" -> key
+              ).toString, "", 0, 0, 0)
+
+              mintpresso.set(p) match {
                 case Some(point) => mintpresso.set("user", account.identifier, "log", "warning", uuid)
                 case None => Logger.info("Not logged. Account("+account.identifier+") signed id unmatch")
               }
@@ -83,11 +88,15 @@ trait Secured {
                   // check whether it has been expired
                   if( (json \ "expired").asOpt[Boolean].getOrElse(true) == true ){
                     val uuid = java.util.UUID.randomUUID().toString
-                    mintpresso.set(Map[Symbol, String](
-                      'warning -> uuid,
-                      'message -> "token expired",
-                      'domain -> request.domain, 'remoteAddress -> request.remoteAddress, 'url -> request.uri, 'token -> key
-                    )).as[Option[Point]] match {
+                    val p = Point(0, "warning", uuid, Json.obj(
+                      "message" -> "token expired",
+                      "domain" -> request.domain,
+                      "remoteAddress" -> request.remoteAddress,
+                      "url" -> request.uri,
+                      "token" -> key
+                    ).toString, "", 0, 0, 0)
+
+                    mintpresso.set(p) match {
                       case Some(point) => mintpresso.set("user", account.identifier, "log", "warning", uuid)
                       case None => Logger.info("Not logged. Account("+account.identifier+") token("+key+") expired")
                     }
@@ -131,11 +140,15 @@ trait Secured {
                       f(request)
                     }else{
                       val uuid = java.util.UUID.randomUUID().toString
-                      mintpresso.set(Map[Symbol, String](
-                        'warning -> uuid,
-                        'message -> "address denied",
-                        'domain -> request.domain, 'remoteAddress -> request.remoteAddress, 'url -> request.uri, 'token -> key
-                      )).as[Option[Point]] match {
+                      val p = Point(0, "warning", uuid, Json.obj(
+                        "message" -> "address denied",
+                        "domain" -> request.domain,
+                        "remoteAddress" -> request.remoteAddress,
+                        "url" -> request.uri,
+                        "token" -> key
+                      ).toString, "", 0, 0, 0)
+
+                      mintpresso.set(p) match {
                         case Some(point) => mintpresso.set("user", account.identifier, "log", "warning", uuid)
                         case None => Logger.info("Account("+account.identifier+") token("+key+") address("+remoteAddress+") denied")
                       }
