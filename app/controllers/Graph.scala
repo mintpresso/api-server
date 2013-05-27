@@ -36,6 +36,7 @@ object Graph extends Controller with Secured {
         }
         case None => 
       }
+      var updateIfExists = request.queryString.get("updateIfExists").flatMap(_.headOption).getOrElse("false").toBoolean
       content.map { json =>
         (json \ "point").asOpt[JsObject].map { obj =>
           var code: Int = 0
@@ -80,8 +81,45 @@ object Graph extends Controller with Secured {
               }
             }
             case id: Pk[Long] => {
-              code = 200
-              msg += "Already defined. "
+              if(updateIfExists){
+                println("GIVEN: " + _data + " / CURRENT: " + point.data.toString)
+                // check data is changed
+                if(_data.toString == point.data.toString){
+                  code = 200
+                  msg += "No changes"
+                }else{
+                  import java.util.Date
+                  point.updatedAt = new Date
+
+                  // duplicate from original point without lock
+                  val archive: Point = Point(NotAssigned, accId, point.typeId, "archive|"+point.identifier, point.createdAt, point.updatedAt, point.referencedAt, point.data)
+                  Point.add(archive) match {
+                    case Some(archiveId) => {
+                      val archiveEdge = Edge(accId, point.id.get, point.typeId, "archive", archiveId, point.typeId)
+                      Edge.add(archiveEdge)
+
+                      // update data
+                      point.data = _data
+                      Point.update(point)
+                      code = 201
+                      msg += "Updated."
+                    }
+                    case None => {
+                      InternalServerError(Json.obj(
+                        "status" -> Json.obj(
+                          "code" -> 500,
+                          "message" -> "Not updated completely. Nothing changed. try again"
+                        )
+                      ))
+                    }
+                  }
+                  
+                }
+
+              }else{
+                code = 200
+                msg += "Already defined. "
+              }
             }
           }
 
@@ -508,7 +546,7 @@ object Graph extends Controller with Secured {
                 throw new Exception("point(type=%1$s, identifier=%2$s) '%3$s' point(type=%4$s, identifier=%5$s): no self-reference and iteratable relationship are allowed.".format(edgeContent._4, edgeContent._2, v, edgeContent._5, edgeContent._3))
               }
               val edge = Edge(accId, sId, sTypeId, v, oId, oTypeId)
-              Edge.add( accId, edge ) map { id: Long =>
+              Edge.add( edge ) map { id: Long =>
                 val json = Json.obj(
                   "status" -> Json.obj(
                     "code" -> 201,

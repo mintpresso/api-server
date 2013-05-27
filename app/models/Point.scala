@@ -8,7 +8,7 @@ import java.util.Date
 import play.api.libs.json._
 import play.api.libs.json.Json._
 
-case class Point(var id: Pk[Long], accountId: Long, typeId: Long, identifier: String, createdAt: Date, updatedAt: Date, referencedAt: Date, data: JsValue)
+case class Point(var id: Pk[Long], accountId: Long, typeId: Long, identifier: String, var createdAt: Date, var updatedAt: Date, var referencedAt: Date, var data: JsValue)
 
 object Point {
   val parser = {
@@ -162,7 +162,7 @@ object Point {
     }
   } 
 
-  def add(point: Point):Option[Long] = {
+  def add(point: Point): Option[Long] = {
     DB.withConnection { implicit conn =>
       val id: Option[Long] = SQL(
         """
@@ -179,6 +179,20 @@ object Point {
         'data           -> Json.stringify(point.data)
       ).executeInsert()
       id
+    }
+  }
+
+  // update only data(json)
+  def update(point: Point): Int = {
+    DB.withConnection { implicit conn =>
+      SQL(
+        """
+          update points set data = {data} where id = {pointId}
+        """
+      ).on(
+        'data     -> point.data.toString,
+        'pointId  -> point.id.get
+      ).executeUpdate()
     }
   }
 }
