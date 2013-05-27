@@ -567,7 +567,7 @@ object Graph extends Controller with Secured {
   def findEdges(  accId: Long, subjectId: Long = -1,
       subjectType: String = "", subjectIdentifier: String = "",
       verb: String = "", objectId: Long = -1L, objectType: String = "",
-      objectIdentifier: String = "", useModels: Boolean = false) = SignedAPI(accId) { implicit request =>
+      objectIdentifier: String = "", getInnerPoints: Boolean = false) = SignedAPI(accId) { implicit request =>
     try {
       var sId: Long     = subjectId
       var sType         = subjectType
@@ -806,7 +806,7 @@ object Graph extends Controller with Secured {
           }.getOrElse {
             throw new Exception("edge(oId=%1$s): subject type of '%2$s' isn't supported.".format(edge.oId, edge.oType))
           }
-          if(useModels == true){
+          if(getInnerPoints == true){
             var sModel: Point = Point.findOneById(accId, edge.sId).get
             var sModelType = PointType.findOneById(sModel.typeId).get.name
             var oModel: Point = Point.findOneById(accId, edge.oId).get
