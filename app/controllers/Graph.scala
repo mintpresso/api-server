@@ -765,6 +765,18 @@ object Graph extends Controller with Secured {
        * v = 6
        */
       if(complexity >= 5){
+        val uuid = java.util.UUID.randomUUID().toString
+        val p = com.mintpresso.Point(0, "error", uuid, Json.obj(
+          "message" -> "complexity limit reached. %f >= 5.000".format(complexity / maxComplexity),
+          "complexity" -> (complexity / maxComplexity),
+          "url" -> request.uri
+        ).toString, "", 0, 0, 0)
+
+        val _identifier = mintpresso.get(accId).get.identifier
+        mintpresso.set(p) match {
+          case Some(point) => mintpresso.set("user", _identifier, "log", "error", uuid)
+          case None => Logger.info("Not logged. Account("+_identifier+") uri("+request.uri+") complexity limit reached. %f >= 5.000".format(complexity / maxComplexity))
+        }
         throw new Exception("edge(?): the pseudo edge specified in query has too many unknown fields. Calculated complexity is %f".format(complexity / maxComplexity))
       }
 
