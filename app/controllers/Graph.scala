@@ -541,7 +541,9 @@ object Graph extends Controller with Secured {
                 throw new Exception("point(type=%1$s, identifier=%2$s) '%3$s' unknown point(type=%4$s, identifier=%5$s): object point isn't found.".format(edgeContent._4, edgeContent._2, v, edgeContent._5, edgeContent._3))
               }
 
-              if(sTypeId == oTypeId){
+              // if(sTypeId == oTypeId){
+              // references between same type, identifier are okay
+              if(sId == oId){
                 throw new Exception("point(type=%1$s, identifier=%2$s) '%3$s' point(type=%4$s, identifier=%5$s): no self-reference and iteratable relationship are allowed.".format(edgeContent._4, edgeContent._2, v, edgeContent._5, edgeContent._3))
               }
               val edge = Edge(accId, sId, sTypeId, v, oId, oTypeId)
