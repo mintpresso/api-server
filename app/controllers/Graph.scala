@@ -82,7 +82,6 @@ object Graph extends Controller with Secured {
             }
             case id: Pk[Long] => {
               if(updateIfExists){
-                println("GIVEN: " + _data + " / CURRENT: " + point.data.toString)
                 // check data is changed
                 if(_data.toString == point.data.toString){
                   code = 200
