@@ -263,6 +263,7 @@ object Graph extends Controller with Secured {
         Ok(result)
       } catch {
         case e: Exception => {
+          e.printStackTrace()
           val json = Json.obj(
             "status" -> Json.obj(
               "code" -> 400,
@@ -466,6 +467,7 @@ object Graph extends Controller with Secured {
       }
     } catch { 
       case e: Exception =>
+        e.printStackTrace()
         val json = Json.obj(
           "status" -> Json.obj(
             "code" -> 400,
@@ -497,10 +499,12 @@ object Graph extends Controller with Secured {
         case Some(json) => {
           content = Some(Json.parse(json))
         }
-        case None => 
+        case None => {}
       }
       content.map { json =>
         (json \ "edge").asOpt[JsObject].map { e =>
+          // subjectId => subjectIdentifier
+          // objectId => objectIdentifier
           val edgeRead = (
             (__ \ "verb").read[String] ~
             (__ \ "subjectId").read[String] ~
@@ -585,6 +589,7 @@ object Graph extends Controller with Secured {
       }
     } catch { 
       case e: Exception =>
+        e.printStackTrace()
         val json = Json.obj(
           "status" -> Json.obj(
             "code" -> 400,
@@ -920,7 +925,6 @@ object Graph extends Controller with Secured {
     } catch { 
       case e: Exception =>
         e.printStackTrace()
-        println(">> " + request)
         val json = Json.obj(
           "status" -> Json.obj(
             "code" -> 400,
