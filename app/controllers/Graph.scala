@@ -572,7 +572,7 @@ object Graph extends Controller with Secured {
               }
             },
             invalid = { error =>
-              throw new Exception("%1$s is undefined".format(error.head._1.toJsonString.replace("obj", "edge")))
+              throw new Exception("point(type=?, id=?) %1$s is undefined. ".format(error.head._1.toJsonString.split('.')(1)))
             }
           )
         } getOrElse {
