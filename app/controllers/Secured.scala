@@ -60,11 +60,14 @@ trait Secured {
               case Some(point) => mintpresso.set("user", account.identifier, "log", "warning", uuid)
               case None => Logger.info("Not logged. Account("+account.identifier+") zero-length key")
             }
-            Results.Forbidden
+            request.queryString.get("callback").flatMap(_.headOption) match {
+              case Some(callback) => Results.Ok(Jsonp(callback, Application.JsonStatus(403, "Access denied")))
+              case None => Results.Forbidden
+            }
           }else{
             val len = accessId.toString.length
             val part = key.substring(0, len)
-            if(part != len.toString){
+            if(part != accessId.toString){
               val uuid = java.util.UUID.randomUUID().toString
               val p = Point(0, "warning", uuid, Json.obj(
                 "message" -> "signed id unmatch",
@@ -78,7 +81,10 @@ trait Secured {
                 case Some(point) => mintpresso.set("user", account.identifier, "log", "warning", uuid)
                 case None => Logger.info("Not logged. Account("+account.identifier+") signed id unmatch")
               }
-              Results.Forbidden
+              request.queryString.get("callback").flatMap(_.headOption) match {
+                case Some(callback) => Results.Ok(Jsonp(callback, Application.JsonStatus(403, "Access denied")))
+                case None => Results.Forbidden
+              }
             }else{
               // get token
               mintpresso.get("token", key).as[Option[Point]] match {
@@ -101,7 +107,10 @@ trait Secured {
                       case Some(point) => mintpresso.set("user", account.identifier, "log", "warning", uuid)
                       case None => Logger.info("Not logged. Account("+account.identifier+") token("+key+") expired")
                     }
-                    Results.Forbidden
+                    request.queryString.get("callback").flatMap(_.headOption) match {
+                      case Some(callback) => Results.Ok(Jsonp(callback, Application.JsonStatus(403, "Access denied")))
+                      case None => Results.Forbidden
+                    }
                   }else{
                     val urls: Array[String] = (json \ "url").asOpt[String].getOrElse("*").split('|')
                     val list: Array[String] = (json \ "address").asOpt[String].getOrElse("").split('|')
@@ -161,7 +170,10 @@ trait Secured {
                         case Some(point) => mintpresso.set("user", account.identifier, "log", "warning", uuid)
                         case None => Logger.info("Account("+account.identifier+") token("+key+") address("+request.remoteAddress+") denied")
                       }
-                      Results.Forbidden
+                      request.queryString.get("callback").flatMap(_.headOption) match {
+                        case Some(callback) => Results.Ok(Jsonp(callback, Application.JsonStatus(403, "Access denied")))
+                        case None => Results.Forbidden
+                      }
                     }
                   }
                 }
@@ -175,7 +187,10 @@ trait Secured {
                     case Some(point) => mintpresso.set("user", account.identifier, "log", "warning", uuid)
                     case None => Logger.info("Account("+account.identifier+") token("+key+") not found")
                   }
-                  Results.Forbidden
+                  request.queryString.get("callback").flatMap(_.headOption) match {
+                    case Some(callback) => Results.Ok(Jsonp(callback, Application.JsonStatus(403, "Access denied")))
+                    case None => Results.Forbidden
+                  }
                 }
               }
             }
@@ -183,7 +198,10 @@ trait Secured {
         }
         case None => {
           Logger.info("Account(None)")
-          Results.Forbidden
+          request.queryString.get("callback").flatMap(_.headOption) match {
+            case Some(callback) => Results.Ok(Jsonp(callback, Application.JsonStatus(403, "Access denied")))
+            case None => Results.Forbidden
+          }
         }
       }
     }
