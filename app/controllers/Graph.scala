@@ -96,10 +96,12 @@ object Graph extends Controller with Secured {
                     case Some(archiveId) => {
                       val archiveEdge = Edge(accId, point.id.get, point.typeId, "archive", archiveId, point.typeId)
                       Edge.add(archiveEdge)
+                      Point.referenced(point.id.get, now)
 
                       // update data
                       point.data = _data
                       Point.update(point)
+                      Point.updated(point.id.get, now)
                       code = 201
                       msg += "Updated."
                     }
@@ -552,6 +554,11 @@ object Graph extends Controller with Secured {
               }
               val edge = Edge(accId, sId, sTypeId, v, oId, oTypeId)
               Edge.add( edge ) map { id: Long =>
+                import java.util.Date
+                val now = new Date
+                Point.referenced(sId, now)
+                Point.referenced(oId, now)
+                
                 val json = Json.obj(
                   "status" -> Json.obj(
                     "code" -> 201,
