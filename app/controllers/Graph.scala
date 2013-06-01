@@ -88,10 +88,10 @@ object Graph extends Controller with Secured {
                   msg += "No changes"
                 }else{
                   import java.util.Date
-                  point.updatedAt = new Date
+                  val now = new Date
 
                   // duplicate from original point without lock
-                  val archive: Point = Point(NotAssigned, accId, point.typeId, "archive|"+point.identifier, point.createdAt, point.updatedAt, point.referencedAt, point.data)
+                  val archive: Point = Point(NotAssigned, accId, point.typeId, point.identifier+'['+point.updatedAt.getTime+']', point.createdAt, point.updatedAt, now, point.data)
                   Point.add(archive) match {
                     case Some(archiveId) => {
                       val archiveEdge = Edge(accId, point.id.get, point.typeId, "archive", archiveId, point.typeId)
