@@ -195,4 +195,30 @@ object Point {
       ).executeUpdate()
     }
   }
+
+  def updated(id: Long, date: Date = new Date()): Int = {
+    DB.withConnection { implicit conn =>
+      SQL(
+        """
+          update points set updatedAt = {updatedAt} where id = {pointId}
+        """
+      ).on(
+        'updatedAt  -> date,
+        'pointId    -> id
+      ).executeUpdate() 
+    }
+  }
+
+  def referenced(id: Long, date: Date = new Date()): Int = {
+    DB.withConnection { implicit conn =>
+      SQL(
+        """
+          update points set referencedAt = {referencedAt} where id = {pointId}
+        """
+      ).on(
+        'referencedAt -> date,
+        'pointId      -> id
+      ).executeUpdate() 
+    }
+  }
 }
