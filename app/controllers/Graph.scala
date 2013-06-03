@@ -133,6 +133,9 @@ object Graph extends Controller with Secured {
               "id" -> point.id.get,
               "type" -> typeString,
               "identifier" -> _identifier,
+              "createdAt" -> point.createdAt,
+              "updatedAt" -> point.updatedAt,
+              "referencedAt" -> point.referencedAt,
               "data" -> _data,
               "_url" -> routes.Graph.getPoint(accId, point.id.get).absoluteURL()
             )
