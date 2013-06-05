@@ -1,5 +1,5 @@
 # --- !Ups
-ALTER TABLE edges ADD COLUMN accountId bigint(20) NOT NULL
+ALTER TABLE `edges` ADD COLUMN `accountId` bigint(20) NOT NULL;
 
 # --- !Downs
-ALTER TABLE edges DROP COLUMN accountId
+ALTER TABLE `edges` DROP COLUMN `accountId`;

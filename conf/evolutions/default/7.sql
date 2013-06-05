@@ -1,5 +1,5 @@
 # --- !Ups
-DROP TABLE accounts IF EXISTS;
+DROP TABLE IF EXISTS `accounts`;
 
 # --- !Downs
-DROP TABLE accounts IF EXISTS;
+DROP TABLE IF EXISTS `accounts`;
