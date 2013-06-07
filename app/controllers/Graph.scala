@@ -873,40 +873,68 @@ object Graph extends Controller with Secured {
             throw new Exception("edge(oId=%1$s): subject type of '%2$s' isn't supported.".format(edge.oId, edge.oType))
           }
           if(getInnerPoints == true){
-            var sModel: Point = Point.findOneById(accId, edge.sId).get
-            var sModelType = PointType.findOneById(sModel.typeId).get.name
-            var oModel: Point = Point.findOneById(accId, edge.oId).get
-            var oModelType = PointType.findOneById(oModel.typeId).get.name
-
-            array = Json.obj(
-              "subjectId" -> edge.sId,
-              "subjectType" -> subjectType,
-              "subject" -> Json.obj(
-                "id" -> sModel.id.get.toLong,
-                "type" -> sModelType,
-                "identifier" -> sModel.identifier,
-                "createdAt" -> sModel.createdAt,
-                "updatedAt" -> sModel.updatedAt,
-                "referencedAt" -> sModel.referencedAt,
-                "data" -> sModel.data,
-                "_url" -> routes.Graph.getPoint(accId, sModel.id.get.toLong).absoluteURL()
-              ),
-              "verb" -> edge.v,
-              "objectId" -> edge.oId,
-              "objectType" -> objectType,
-              "object" -> Json.obj(
-                "id" -> oModel.id.get.toLong,
-                "type" -> oModelType,
-                "identifier" -> oModel.identifier,
-                "createdAt" -> oModel.createdAt,
-                "updatedAt" -> oModel.updatedAt,
-                "referencedAt" -> oModel.referencedAt,
-                "data" -> oModel.data,
-                "_url" -> routes.Graph.getPoint(accId, oModel.id.get.toLong).absoluteURL()
-              ),
-              "createdAt" -> edge.createdAt,
-              "_url" -> (routes.Graph.findEdges(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL() + url)
-            ) +: array 
+            (Point.findOneById(accId, edge.sId), Point.findOneById(accId, edge.oId)) match {
+              case (Some(sModel), Some(oModel)) => {
+                // both points found
+                (PointType.findOneById(sModel.typeId), PointType.findOneById(oModel.typeId)) match {
+                  // both types found
+                  case (Some(_sType), Some(_oType)) => {
+                    val sModelType = _sType.name
+                    val oModelType = _oType.name
+                    array = Json.obj(
+                      "subjectId" -> edge.sId,
+                      "subjectType" -> subjectType,
+                      "subject" -> Json.obj(
+                        "id" -> sModel.id.get.toLong,
+                        "type" -> sModelType,
+                        "identifier" -> sModel.identifier,
+                        "createdAt" -> sModel.createdAt,
+                        "updatedAt" -> sModel.updatedAt,
+                        "referencedAt" -> sModel.referencedAt,
+                        "data" -> sModel.data,
+                        "_url" -> routes.Graph.getPoint(accId, sModel.id.get.toLong).absoluteURL()
+                      ),
+                      "verb" -> edge.v,
+                      "objectId" -> edge.oId,
+                      "objectType" -> objectType,
+                      "object" -> Json.obj(
+                        "id" -> oModel.id.get.toLong,
+                        "type" -> oModelType,
+                        "identifier" -> oModel.identifier,
+                        "createdAt" -> oModel.createdAt,
+                        "updatedAt" -> oModel.updatedAt,
+                        "referencedAt" -> oModel.referencedAt,
+                        "data" -> oModel.data,
+                        "_url" -> routes.Graph.getPoint(accId, oModel.id.get.toLong).absoluteURL()
+                      ),
+                      "createdAt" -> edge.createdAt,
+                      "_url" -> (routes.Graph.findEdges(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL() + url)
+                    ) +: array 
+                  }
+                  case (None, Some(_)) => {
+                    throw new Exception("edge(sId=%1$s, oId=%1$s): subject type of '%3$s' isn't supported.".format(edge.sId, edge.oId, edge.sType))
+                  }
+                  case (Some(_), None) => {
+                    throw new Exception("edge(sId=%1$s, oId=%1$s): object type of '%3$s' isn't supported.".format(edge.sId, edge.oId, edge.oType))
+                  }
+                  case (_, _) => {
+                    throw new Exception("edge(sId=%1$s, oId=%1$s): subject and object types of {%3$s, %4$s} isn't supported.".format(edge.sId, edge.oId, edge.sType, edge.oType))
+                  }
+                }
+              }
+              case (_, _) => {
+                // one or both not found, ignore innerModels
+                array = Json.obj(
+                  "subjectId" -> edge.sId,
+                  "subjectType" -> subjectType,
+                  "verb" -> edge.v,
+                  "objectId" -> edge.oId,
+                  "objectType" -> objectType,
+                  "createdAt" -> edge.createdAt,
+                  "_url" -> (routes.Graph.findEdges(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL() + url)
+                ) +: array 
+              }
+            }
           }else{
             array = Json.obj(
               "subjectId" -> edge.sId,
