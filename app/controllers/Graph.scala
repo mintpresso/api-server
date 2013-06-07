@@ -908,7 +908,7 @@ object Graph extends Controller with Secured {
                         "_url" -> routes.Graph.getPoint(accId, oModel.id.get.toLong).absoluteURL()
                       ),
                       "createdAt" -> edge.createdAt,
-                      "_url" -> (routes.Graph.findEdges(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL() + url)
+                      "_url" -> (routes.Graph.findEdges(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL())
                     ) +: array 
                   }
                   case (None, Some(_)) => {
@@ -931,7 +931,7 @@ object Graph extends Controller with Secured {
                   "objectId" -> edge.oId,
                   "objectType" -> objectType,
                   "createdAt" -> edge.createdAt,
-                  "_url" -> (routes.Graph.findEdges(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL() + url)
+                  "_url" -> (routes.Graph.findEdges(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL())
                 ) +: array 
               }
             }
@@ -943,7 +943,7 @@ object Graph extends Controller with Secured {
               "objectId" -> edge.oId,
               "objectType" -> objectType,
               "createdAt" -> edge.createdAt,
-              "_url" -> (routes.Graph.findEdges(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL() + url)
+              "_url" -> (routes.Graph.findEdges(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL())
             ) +: array 
           }
         }
