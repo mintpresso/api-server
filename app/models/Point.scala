@@ -27,16 +27,7 @@ object Point {
   }
   
   def apply(accId: Long, typeString: String, identifier: String, data: JsObject): Point = {
-    var typeId: Long = -1
-    PointType.findOneByName(typeString) map { pt =>
-      typeId = pt.id.get
-    } getOrElse {
-      PointType.add(PointType(NotAssigned, typeString)) map { id =>
-        typeId = id 
-      } getOrElse {        
-        throw new Exception("point(type=%1$s) cannot be added.")
-      }
-    }
+    var typeId: Long = PointType.findOneByNameOrAdd(typeString).id.get
 
     if(identifier.length > 0){
       this.findOneByTypeIdAndIdentifier(accId, typeId, identifier) match {
