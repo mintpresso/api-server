@@ -1,0 +1,9 @@
+# deploy.before
+#
+# Author: Jinhyuk Lee <eces at mstock.org>
+# Organization: MINTPRESSO <support at mintpresso.com>
+# Repository: https://github.com/eces/chai-latte
+#
+# Description: This is a shell script for the trigger that will be executed just BEFORE deployment.
+#
+curl https://rpm.newrelic.com/accounts/140795/applications/1981792/ping_targets/disable -X POST -H "X-Api-Key: 9c5c19239d6ff1d25f421303a67afc42759d3a2f5a16df0"
