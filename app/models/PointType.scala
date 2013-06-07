@@ -31,6 +31,30 @@ object PointType {
     }
   }
 
+  def findOneByNameOrAdd(name: String): PointType = {
+    DB.withConnection { implicit conn =>
+      SQL(
+        """
+          INSERT IGNORE INTO pointTypes
+          (name)
+          VALUES
+          ({name})
+        """
+      ).on(
+        'name -> name
+      ).executeInsert()
+      SQL(
+        """
+          SELECT *
+          FROM pointTypes
+          WHERE name = {name}
+        """
+      ).on(
+        'name -> name
+      ).as(parser.single)
+    }
+  }
+
   def findAllByAccountId(accId: Long): List[String] = {
     DB.withConnection { implicit con =>
       SQL(
