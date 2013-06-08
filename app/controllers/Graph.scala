@@ -97,11 +97,13 @@ object Graph extends Controller with Secured {
                       val archiveEdge = Edge(accId, point.id.get, point.typeId, "archive", archiveId, point.typeId)
                       Edge.add(archiveEdge)
                       Point.referenced(point.id.get, now)
+                      point.referencedAt = now
 
                       // update data
                       point.data = _data
                       Point.update(point)
                       Point.updated(point.id.get, now)
+                      point.updatedAt = now
                       code = 201
                       msg += "Updated."
                     }
