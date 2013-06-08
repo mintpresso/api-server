@@ -16,12 +16,12 @@ object Point {
     get[Long]("accountId")~
     get[Long]("typeId")~ 
     get[String]("identifier")~ 
-    get[Long]("createdAt")~ 
-    get[Long]("updatedAt")~ 
-    get[Long]("referencedAt")~ 
+    get[Date]("createdAt")~ 
+    get[Date]("updatedAt")~ 
+    get[Date]("referencedAt")~ 
     get[String]("data") map {
       case pk~l1~l2~s1~d1~d2~d3~s2 => {
-        new Point(pk, l1, l2, s1, new Date(d1), new Date(d2), new Date(d3), Json.parse(s2))
+        new Point(pk, l1, l2, s1, d1, d2, d3, Json.parse(s2))
       }
     }
   }
