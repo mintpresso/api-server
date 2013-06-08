@@ -164,7 +164,7 @@ object Graph extends Controller with Secured {
           throw new Exception("""Json object 'point' is required like this: { "point": ... } """)
         }
       } getOrElse {
-        throw new Exception("""Json object 'point' is required like this: { "point": ... } """)
+        throw new Exception("""Json object 'point' is required like this: { "point": ... }. Make sure "Content-Type: application/json" on header. """)
       }
     } catch { 
       case e: Exception =>
