@@ -68,8 +68,8 @@ play! 2.1.1 (using Java 1.6.0_45 and Scala 2.10.0), http://www.playframework.org
 
 이제 명령어를 통해 서버를 키거나 끄면 됩니다.
 
-- `run 15000` 15000번 포트로 실행합니다.
-- `~run 15000` 15000번 포트로 실행합니다. 파일이 바뀌면 자동으로 다시 컴파일합니다.
+- `run 15100` 15100번 포트로 실행합니다.
+- `~run 15100` 15100번 포트로 실행합니다. 파일이 바뀌면 자동으로 다시 컴파일합니다.
 - `test` 테스트합니다.
 
 서버에 올리려면 컴파일을 하고 [차이라떼](https://github.com/eces/chai-latte)를 통해 디플로이 하면됩니다.
@@ -78,7 +78,7 @@ $ play clean compile stage
 ...
 [success] Total time: 7 s, completed Jun 15, 2013 12:20:43 AM
 
-$ deploy 15000
+$ deploy 15100
 ...
 [5/5] DONE!
 
@@ -87,6 +87,7 @@ $
 
 - 로컬(localhost)에서는 `application.conf`를 이용하지만 서버에서는 production.conf를 이용합니다. 그러니 새로 추가된 설정 값을 @eces에게 알려주세요.
 - 차이라떼에서는 `deploy.conf`에서 설정 값을 받아옵니다. `deploy.before`와 `deplot.after`를 따로 사용할 수 있는데 이는 서버 디플로이동안 NewRelic에게 서비스장애가 아니라고 말해주는 것이니 신경 쓸 필요없어요! [차이라떼](https://github.com/eces/chai-latte) 설명이 잘 쓰여있으니 참고바랍니다.
+- API Server는 15100, 15101 포트를 이용합니다.
 
 ## 이슈 관리 - Issue tracker
 https://github.com/mintpresso/api-server/issues
