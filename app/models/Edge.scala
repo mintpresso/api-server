@@ -12,14 +12,24 @@ import play.api.libs.json.Json._
 case class Edge(id: Pk[Any], accountId: Long, sId: Long, sType: Long, v: String, oId: Long, oType: Long, createdAt: Date){
 
 }
-object MetaQueryBuilder {
-  def apply(query: String, where: Map[Symbol, String]): SimpleSql[Row] = {
+object MetaQueryBuilder { 
+  import scala.language.implicitConversions
+  implicit def tToStringMap[T](m: Map[T, String]): Map[String, String] = m.map { a =>
+    a._1 match {
+      case x: String => (x -> a._2)
+      case x: Symbol => (x.name -> a._2)
+      case x => throw new Exception(x.getClass.toString() + " is invalid type.")
+    }
+  }
+
+  def apply[T](query: String, where: Map[T, String]): SimpleSql[Row] = {
+    val stringWhere: Map[String, String] = where
     var d = Seq[(Any, anorm.ParameterValue[_])]()
     var qry = Seq[String]()
-    for((k, v) <- where) {
+    for((k, v) <- stringWhere) {
       val tmp = (k -> v): (Any, anorm.ParameterValue[_])
       d = d :+ tmp
-      qry = qry :+ "%1$s = {%1$s}".format(k.name)
+      qry = qry :+ "%1$s = {%1$s}".format(k)
     }
     val condition = qry.reduce("%s AND %s".format(_, _))
     SQL(s"$query WHERE $condition").on(d: _*)

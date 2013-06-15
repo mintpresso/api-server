@@ -34,5 +34,14 @@ class MetaQueryBuilderSpec extends Specification {
       val q = MetaQueryBuilder(query, where=Map('a-> "1", 'b -> "c", 'c -> "d"))
       q.sql.query === "SELECT * FROM edges WHERE a = ? AND b = ? AND c = ?"
     }
+
+    "build query based on Map[String, String]" in {
+      
+      val query = "SELECT * FROM edges"
+      val q = MetaQueryBuilder(query,
+                               where=Map("a"-> "1", "b" -> "c", "c" -> "d"))
+      q.sql.query === "SELECT * FROM edges WHERE a = ? AND b = ? AND c = ?"
+
+    }
   }
 }
