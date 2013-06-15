@@ -12,6 +12,40 @@ import play.api.libs.json.Json._
 case class Edge(id: Pk[Any], accountId: Long, sId: Long, sType: Long, v: String, oId: Long, oType: Long, createdAt: Date){
 
 }
+object MetaQueryBuilder { 
+  import scala.language.implicitConversions
+  implicit def tToStringMap[T](m: Map[T, String]): Map[String, String] = m.map { a =>
+    a._1 match {
+      case x: String => (x -> a._2)
+      case x: Symbol => (x.name -> a._2)
+      case x => throw new Exception(x.getClass.toString() + " is invalid type.")
+    }
+  }
+
+  def apply[T](query: String, where: Map[T, String], additional: Map[T, String] = Map[T, String]()): SimpleSql[Row] = {
+    val stringWhere: Map[String, String] = where
+    val stringAddition: Map[String, String] = additional
+    var d = Seq[(Any, anorm.ParameterValue[_])]()
+    var qry = Seq[String]()
+    var additionalQry = Seq[String]()
+    for((k, v) <- stringWhere) {
+      val tmp = (k -> v): (Any, anorm.ParameterValue[_])
+      d = d :+ tmp
+      qry = qry :+ "%1$s = {%1$s}".format(k)
+    }
+
+    for((k, v) <- stringAddition) {
+      additionalQry = additionalQry :+ "%s %s".format(k, v)
+    }
+    val condition = qry.reduceLeft("%s AND %s".format(_, _))
+    var additionalOption = ""
+    if(additionalQry.length > 0) {
+     additionalOption = additionalQry.reduce("%s %s".format(_, _))
+    }
+    SQL(s"$query WHERE $condition $additionalOption").on(d: _*)
+  }
+}
+
 
 object Edge {
   val parser = {
@@ -32,7 +66,7 @@ object Edge {
   def apply(accountId: Long, sId: Long, sTypeId: Long, v: String, oId: Long, oTypeId: Long): Edge = {
     new Edge(anorm.NotAssigned, accountId, sId, sTypeId, v, oId, oTypeId, new Date())
   }
-
+ 
   def find(accountId: Long, verb: Option[String], args: (String, Long)*): List[Edge] = {
     DB.withConnection { implicit conn =>
       verb map { v =>
