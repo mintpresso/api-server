@@ -43,5 +43,18 @@ class MetaQueryBuilderSpec extends Specification {
       q.sql.query === "SELECT * FROM edges WHERE a = ? AND b = ? AND c = ?"
 
     }
+
+    "build query based on (String, Long)*" in {
+      def a(args: (String, Long)*) = {
+        var tmp: Map[String, String] = Map[String, String]()
+        val query = "SELECT * FROM edges"
+        for(a <- args) {
+          tmp = tmp + (a._1 -> a._2.toString())
+        }
+        MetaQueryBuilder(query, where=tmp)
+      }
+      val expected = "SELECT * FROM edges WHERE a = ? AND b = ? AND c = ?"
+      a("a" -> 1, "b" -> 2, "c" -> 3).sql.query === expected
+    }
   }
 }
