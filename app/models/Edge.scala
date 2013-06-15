@@ -22,17 +22,27 @@ object MetaQueryBuilder {
     }
   }
 
-  def apply[T](query: String, where: Map[T, String]): SimpleSql[Row] = {
+  def apply[T](query: String, where: Map[T, String], additional: Map[T, String] = Map[T, String]()): SimpleSql[Row] = {
     val stringWhere: Map[String, String] = where
+    val stringAddition: Map[String, String] = additional
     var d = Seq[(Any, anorm.ParameterValue[_])]()
     var qry = Seq[String]()
+    var additionalQry = Seq[String]()
     for((k, v) <- stringWhere) {
       val tmp = (k -> v): (Any, anorm.ParameterValue[_])
       d = d :+ tmp
       qry = qry :+ "%1$s = {%1$s}".format(k)
     }
-    val condition = qry.reduce("%s AND %s".format(_, _))
-    SQL(s"$query WHERE $condition").on(d: _*)
+
+    for((k, v) <- stringAddition) {
+      additionalQry = additionalQry :+ "%s %s".format(k, v)
+    }
+    val condition = qry.reduceLeft("%s AND %s".format(_, _))
+    var additionalOption = ""
+    if(additionalQry.length > 0) {
+     additionalOption = additionalQry.reduce("%s %s".format(_, _))
+    }
+    SQL(s"$query WHERE $condition $additionalOption").on(d: _*)
   }
 }
 

@@ -21,40 +21,47 @@ class MetaQueryBuilderSpec extends Specification {
       f()
     }
   }
+  val query = "SELECT * FROM edges"
+  val expectedQuery = "SELECT * FROM edges WHERE a = ? AND b = ? AND c = ?"
+  val testWhere = Map("a"-> "1", "b" -> "c", "c" -> "d")
 
   "MetaQueryBuilder " should {
     "build query based on Map[Symbol, String] data" in {
       val query = "SELECT * FROM edges"
-      val q = MetaQueryBuilder(query, where=Map('a-> "1"))
+      val q = MetaQueryBuilder(query, where=Map('a -> "1"))
       q.sql.query === "SELECT * FROM edges WHERE a = ?"
     }
 
     "build query based on Map[Symbol, String] data (more longer map)" in {
-      val query = "SELECT * FROM edges"
       val q = MetaQueryBuilder(query, where=Map('a-> "1", 'b -> "c", 'c -> "d"))
-      q.sql.query === "SELECT * FROM edges WHERE a = ? AND b = ? AND c = ?"
+      q.sql.query === expectedQuery
     }
 
     "build query based on Map[String, String]" in {
-      
-      val query = "SELECT * FROM edges"
       val q = MetaQueryBuilder(query,
-                               where=Map("a"-> "1", "b" -> "c", "c" -> "d"))
-      q.sql.query === "SELECT * FROM edges WHERE a = ? AND b = ? AND c = ?"
+                               where=testWhere)
+      q.sql.query === expectedQuery 
 
     }
 
     "build query based on (String, Long)*" in {
       def a(args: (String, Long)*) = {
         var tmp: Map[String, String] = Map[String, String]()
-        val query = "SELECT * FROM edges"
         for(a <- args) {
           tmp = tmp + (a._1 -> a._2.toString())
         }
         MetaQueryBuilder(query, where=tmp)
       }
-      val expected = "SELECT * FROM edges WHERE a = ? AND b = ? AND c = ?"
-      a("a" -> 1, "b" -> 2, "c" -> 3).sql.query === expected
+      a("a" -> 1, "b" -> 2, "c" -> 3).sql.query === expectedQuery
+    }
+
+    "Add additional options" in {
+      val q = MetaQueryBuilder(query,
+                               where=testWhere,
+                               additional=Map("LIMIT" -> "1"))
+      q.sql.query === expectedQuery  + " LIMIT 1"
+
+      
     }
   }
 }
