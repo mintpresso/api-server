@@ -12,6 +12,20 @@ import play.api.libs.json.Json._
 case class Edge(id: Pk[Any], accountId: Long, sId: Long, sType: Long, v: String, oId: Long, oType: Long, createdAt: Date){
 
 }
+object MetaQueryBuilder {
+  def apply(query: String, where: Map[Symbol, String]): SimpleSql[Row] = {
+    var d = Seq[(Any, anorm.ParameterValue[_])]()
+    var qry = Seq[String]()
+    for((k, v) <- where) {
+      val tmp = (k -> v): (Any, anorm.ParameterValue[_])
+      d = d :+ tmp
+      qry = qry :+ "%1$s = {%1$s}".format(k.name)
+    }
+    val condition = qry.reduce("%s AND %s".format(_, _))
+    SQL(s"$query WHERE $condition").on(d: _*)
+  }
+}
+
 
 object Edge {
   val parser = {
@@ -32,7 +46,7 @@ object Edge {
   def apply(accountId: Long, sId: Long, sTypeId: Long, v: String, oId: Long, oTypeId: Long): Edge = {
     new Edge(anorm.NotAssigned, accountId, sId, sTypeId, v, oId, oTypeId, new Date())
   }
-
+ 
   def find(accountId: Long, verb: Option[String], args: (String, Long)*): List[Edge] = {
     DB.withConnection { implicit conn =>
       verb map { v =>
