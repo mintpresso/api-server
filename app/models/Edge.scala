@@ -75,6 +75,12 @@ object Edge {
       MetaQueryBuilder(query, where, additional.toMap).as(parser *)
     }
   }
+
+  def count(accountId: Long, conditions: Map[String, String]): Long = {
+    DB.withConnection { implicit conn =>
+      val where = Map("accountId" -> accountId.toString) ++ conditions
+      val query = "SELECT COUNT(`id`) as count FROM `edges`"
+      MetaQueryBuilder(query, where).apply().head[Long]("count")
     }
   }
 
