@@ -440,7 +440,7 @@ class APIv1Spec extends Specification {
         r.status === 201
       }
     }
-    "be founded by subject and object" in {
+    "be founded by subject and object with milliseconds" in {
       edgeSetup { e =>
         val r = Await.result(
           WS.url( localUrl + "edge" )
@@ -453,7 +453,9 @@ class APIv1Spec extends Specification {
             .get(),
           duration
         )
-
+        val json = Json.parse(r.body)
+        val edge = (json \ "edges").as[JsArray].value(0)
+        (edge \ "createdAt").as[Long] % 1000 must not equalTo( 0L )
         r.status === 200
       }
     }
