@@ -457,6 +457,71 @@ class APIv1Spec extends Specification {
         r.status === 200
       }
     }
+    "be configured by limit and offset" in {
+      edgeSetup { e =>
+        val r1 = Await.result(
+          WS.url( localUrl + "edge" )
+            .withQueryString(
+              "subjectType" -> e("subjectType"),
+              "subjectIdentifier" -> e("subjectIdentifier"),
+              "objectType" -> e("objectType"),
+              "objectIdentifier" -> e("objectIdentifier"),
+              "getInnerPoints" ->  "false")
+            .get(),
+          duration
+        )
+        r1.status must equalTo(200)
+
+        val count = (Json.parse(r1.body) \ "_length").as[Int]
+        count must beGreaterThan(0)
+        
+        val r2 = Await.result(
+          WS.url( localUrl + "edge" )
+            .withQueryString(
+              "subjectType" -> e("subjectType"),
+              "subjectIdentifier" -> e("subjectIdentifier"),
+              "objectType" -> e("objectType"),
+              "objectIdentifier" -> e("objectIdentifier"),
+              "limit" -> "1",
+              "getInnerPoints" ->  "false")
+            .get(),
+          duration
+        )
+        r2.status must equalTo(200)
+        (Json.parse(r2.body) \ "_length").as[Int] must equalTo(1)
+
+        val r3 = Await.result(
+          WS.url( localUrl + "edge" )
+            .withQueryString(
+              "subjectType" -> e("subjectType"),
+              "subjectIdentifier" -> e("subjectIdentifier"),
+              "objectType" -> e("objectType"),
+              "objectIdentifier" -> e("objectIdentifier"),
+              "offset" -> "1",
+              "getInnerPoints" ->  "false")
+            .get(),
+          duration
+        )
+        r3.status must equalTo(200)
+        (Json.parse(r3.body) \ "_length").as[Int] must equalTo( count-1 )
+
+        val r4 = Await.result(
+          WS.url( localUrl + "edge" )
+            .withQueryString(
+              "subjectType" -> e("subjectType"),
+              "subjectIdentifier" -> e("subjectIdentifier"),
+              "objectType" -> e("objectType"),
+              "objectIdentifier" -> e("objectIdentifier"),
+              "limit" -> count.toString,
+              "offset" -> "1",
+              "getInnerPoints" ->  "false")
+            .get(),
+          duration
+        )
+        r4.status must equalTo(200)
+        (Json.parse(r4.body) \ "_length").as[Int] must equalTo( count-1 )
+      }
+    }
   }
 
 }
