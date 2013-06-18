@@ -1,6 +1,7 @@
 package test
 
 import org.specs2.mutable._
+import org.specs2.matcher.MatchResult
 
 import play.api.test._
 import play.api.test.Helpers._
@@ -319,4 +320,143 @@ class APIv1Spec extends Specification {
     }
 
   }
+  "Edge" can {
+    sequential
+
+    val _identifier = java.util.UUID.randomUUID().toString
+    val _type = java.util.UUID.randomUUID().toString.replace("-", "")
+    def pointSetup(f: JsValue => JsValue => MatchResult[Any]): MatchResult[Any] = {
+      val body =
+      """
+      {
+        "point": {
+          "type": "%s",
+          "identifier": "%s"
+        }
+      }
+      """
+      val s = Await.result(
+        WS.url( localUrl + "point" )
+          .withHeaders( ("Content-Type", "application/json") )
+          .withQueryString(("updateIfExists", "true"))
+          .post[String](body.format( _type, _identifier )),
+        duration
+      )
+      val o = Await.result(
+        WS.url( localUrl + "point" )
+          .withHeaders( ("Content-Type", "application/json") )
+          .withQueryString(("updateIfExists", "true"))
+          .post[String](body.format( _type + "object", _identifier + "object")),
+        duration
+      )
+      if((s.status == 201 && o.status == 201) ||  (s.status == 200 && o.status == 200)) {
+        f(s.json)(o.json)
+      } else {
+        false === true
+      }
+    }
+
+    def edgeSetup(f: Map[String, String] => MatchResult[Any]): MatchResult[Any] = {
+      pointSetup { s => o =>
+        val st = (s \ "point" \ "type").as[String]
+        val ot = (o \ "point" \ "type").as[String]
+        val si = (s \ "point" \ "identifier").as[String]
+        val oi = (o \ "point" \ "identifier").as[String]
+        val edgeBody = """
+        {
+          "edge": {
+            "subjectType": "%s",
+            "subjectId": "%s",
+            "objectType": "%s",
+            "objectId": "%s",
+            "verb": "like"
+          }
+        }
+        """.format(st, si, ot, oi)
+        val r = Await.result(
+          WS.url( localUrl + "edge" )
+            .withHeaders( ("Content-Type", "application/json") )
+            .post[String](edgeBody),
+          duration
+        )
+        if(r.status == 201 || r.status == 200) {
+          f(Map("subjectType" -> st,
+                "subjectIdentifier" -> si,
+                "objectType" -> ot,
+                "objectIdentifier" -> oi))
+        } else {
+          false === true
+        }
+      }
+    }
+    "not be added Content-Type" in {
+      pointSetup { s => o =>
+        val st = (s \ "point" \ "type").as[String]
+        val ot = (o \ "point" \ "type").as[String]
+        val si = (s \ "point" \ "identifier").as[String]
+        val oi = (o \ "point" \ "identifier").as[String]
+        val edgeBody = """
+        {
+          "edge": {
+            "subjectType": "%s",
+            "subjectId": "%s",
+            "objectType": "%s",
+            "objectId": "%s",
+            "verb": "like"
+          }
+        }
+        """.format(st, si, ot, oi)
+        val r = Await.result(
+          WS.url( localUrl + "edge" )
+            .post[String](edgeBody),
+          duration
+        )
+        r.status === 400
+      }
+    }
+    "be added subject and object" in {
+      pointSetup { s => o =>
+        val st = (s \ "point" \ "type").as[String]
+        val ot = (o \ "point" \ "type").as[String]
+        val si = (s \ "point" \ "identifier").as[String]
+        val oi = (o \ "point" \ "identifier").as[String]
+        val edgeBody = """
+        {
+          "edge": {
+            "subjectType": "%s",
+            "subjectId": "%s",
+            "objectType": "%s",
+            "objectId": "%s",
+            "verb": "like"
+          }
+        }
+        """.format(st, si, ot, oi)
+        val r = Await.result(
+          WS.url( localUrl + "edge" )
+            .withHeaders( ("Content-Type", "application/json") )
+            .post[String](edgeBody),
+          duration
+        )
+        r.status === 201
+      }
+    }
+    "be founded by subject and object" in {
+      edgeSetup { e =>
+        val r = Await.result(
+          WS.url( localUrl + "edge" )
+            .withQueryString(
+              "subjectType" -> e("subjectType"),
+              "subjectIdentifier" -> e("subjectIdentifier"),
+              "objectType" -> e("objectType"),
+              "objectIdentifier" -> e("objectIdentifier"),
+              "getInnerPoints" ->  "false")
+            .get(),
+          duration
+        )
+
+        r.status === 200
+      }
+    }
+  }
+
 }
