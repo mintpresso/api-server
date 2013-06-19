@@ -1,5 +1,7 @@
 package test
 
+import scala.collection.mutable.LinkedHashMap
+
 import org.specs2.mutable._
 import org.specs2.matcher.MatchResult
 import play.api.Configuration
@@ -7,8 +9,6 @@ import play.api.test._
 import play.api.test.Helpers._
 
 import models.MetaQueryBuilder
-
-
 
 class MetaQueryBuilderSpec extends Specification {
   def testContext(f: Any => MatchResult[Any]): MatchResult[Any] = {
@@ -58,7 +58,7 @@ class MetaQueryBuilderSpec extends Specification {
     "Add additional options" in {
       val q = MetaQueryBuilder(query,
                                where=testWhere,
-                               additional=Map("LIMIT" -> "1"))
+                               additional=LinkedHashMap("LIMIT" -> "1"))
       q.sql.query === expectedQuery  + " LIMIT 1"
 
       
