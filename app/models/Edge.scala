@@ -22,10 +22,17 @@ object MetaQueryBuilder {
       case x => throw new Exception(x.getClass.toString() + " is invalid type.")
     }
   }
+  implicit def tToStringLinkedHashMap[T](m: LinkedHashMap[T, String]): LinkedHashMap[String, String] = m.map { a =>
+    a._1 match {
+      case x: String => (x -> a._2)
+      case x: Symbol => (x.name -> a._2)
+      case x => throw new Exception(x.getClass.toString() + " is invalid type.")
+    }
+  }
 
-  def apply[T](query: String, where: Map[T, String], additional: Map[T, String] = Map[T, String]()): SimpleSql[Row] = {
+  def apply[T](query: String, where: Map[T, String], additional: LinkedHashMap[T, String] = LinkedHashMap[T, String]()): SimpleSql[Row] = {
     val stringWhere: Map[String, String] = where
-    val stringAddition: Map[String, String] = additional
+    val stringAddition: LinkedHashMap[String, String] = additional
     var d = Seq[(Any, anorm.ParameterValue[_])]()
     var qry = Seq[String]()
     var additionalQry = Seq[String]()
@@ -72,7 +79,7 @@ object Edge {
     DB.withConnection { implicit conn =>
       val where = Map("accountId" -> accountId.toString) ++ conditions
       val query = "SELECT * FROM `edges`"
-      MetaQueryBuilder(query, where, additional.toMap).as(parser *)
+      MetaQueryBuilder(query, where, additional).as(parser *)
     }
   }
 
