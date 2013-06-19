@@ -8,6 +8,7 @@ import anorm.SqlParser._
 import java.util.Date
 import play.api.libs.json._
 import play.api.libs.json.Json._
+import scala.collection.mutable.LinkedHashMap
 
 case class Edge(id: Pk[Any], accountId: Long, sId: Long, sType: Long, v: String, oId: Long, oType: Long, createdAt: Date){
 
@@ -67,24 +68,19 @@ object Edge {
     new Edge(anorm.NotAssigned, accountId, sId, sTypeId, v, oId, oTypeId, new Date())
   }
  
-  def find(accountId: Long, verb: Option[String], args: (String, Long)*): List[Edge] = {
+  def find(accountId: Long, conditions: Map[String, String], additional: LinkedHashMap[String, String]): List[Edge] = {
     DB.withConnection { implicit conn =>
-      if(args.length <= 5) {
-        var where: Map[String, String] = Map[String, String](
-          "accountId" -> accountId.toString()
-        )
-        verb map { v =>
-          where = where + ("v" -> v)
-        }
-        for(a <- args) {
-          where = where + (a._1 -> a._2.toString())
-        }
-        val query = "SELECT * FROM edges"
-        MetaQueryBuilder(query, where).as(parser *)
-      } else {
-        Logger.info("Edge.find: requested with exceed 5 parameters. ")
-        List()
-      }    
+      val where = Map("accountId" -> accountId.toString) ++ conditions
+      val query = "SELECT * FROM `edges`"
+      MetaQueryBuilder(query, where, additional.toMap).as(parser *)
+    }
+  }
+
+  def count(accountId: Long, conditions: Map[String, String]): Long = {
+    DB.withConnection { implicit conn =>
+      val where = Map("accountId" -> accountId.toString) ++ conditions
+      val query = "SELECT COUNT(`id`) as count FROM `edges`"
+      MetaQueryBuilder(query, where).apply().head[Long]("count")
     }
   }
 
