@@ -69,18 +69,6 @@ object Point {
     }
   }
 
-  def countByTypeId(accId: Long, typeId: Long): Long = {
-    DB.withConnection { implicit conn =>
-      SQL(
-        """
-          SELECT COUNT(`id`) as count FROM `points` where `accountId` = {accId} and `typeId` = {typeId}
-        """
-      ).on( 'accId -> accId, 
-            'typeId -> typeId
-      ).apply().head[Long]("count")
-    }
-  }
-
   def findAllByIdentifier(accId: Long, identifier: String, limit: Int, offset: Int): List[Point] = {
     DB.withConnection { implicit conn =>
       SQL(
@@ -92,18 +80,6 @@ object Point {
             'limit -> limit,
             'offset -> offset
       ).as(parser *)
-    }
-  }
-
-  def countByIdentifier(accId: Long, identifier: String): Long = {
-    DB.withConnection { implicit conn =>
-      SQL(
-        """
-          SELECT COUNT(`id`) as count FROM `points` where `accountId` = {accId} and `identifier` = {identifier}
-        """
-      ).on( 'accId -> accId, 
-            'identifier -> identifier
-      ).apply().head[Long]("count")
     }
   }
 
