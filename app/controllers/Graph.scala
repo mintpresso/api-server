@@ -325,10 +325,10 @@ object Graph extends Controller with Secured {
               "createdAt" -> point.createdAt,
               "updatedAt" -> point.updatedAt,
               "referencedAt" -> point.referencedAt,
-              "data" -> point.data,
-              "_url" -> routes.Graph.getPoint(accId, _id).absoluteURL()
+              "data" -> point.data
             ),
-            "_length" -> 1
+            "_length" -> 1,
+            "length" -> 1
           )
           request.queryString.get("callback").flatMap(_.headOption) match {
             case Some(callback) => Ok(Jsonp(callback, json))
@@ -348,10 +348,12 @@ object Graph extends Controller with Secured {
           throw new Exception("point(identifier=?, type=%1$s) type: '%1$s' isn't supported.".format(typeString))
         }
         val list: List[Point] = Point.findAllByTypeId(accId, typeId, limit, offset)
+        val total = Point.countByTypeId(accId, typeId)
+
         if(list.length == 0){
           request.queryString.get("callback").flatMap(_.headOption) match {
-            case Some(callback) => Ok(Jsonp(callback, Application.JsonStatus(404, "Point not found")))
-            case None => Application.NotFoundJson(404, "Point not found")
+            case Some(callback) => Ok(Jsonp(callback, Application.JsonStatus(404, "Point not found. Out of %d.".format(total))))
+            case None => Application.NotFoundJson(404, "Point not found. Out of %d.".format(total))
           }
         }else{
           var array: JsArray = new JsArray()
@@ -364,34 +366,18 @@ object Graph extends Controller with Secured {
             }.getOrElse {
               throw new Exception("point(typeId=%1$d) isn't supported.".format(point.typeId))
             }
-            array = Json.obj(
+            array +:= Json.obj(
               "id" -> _id,
               "type" -> ptn,
               "identifier" -> point.identifier,
               "createdAt" -> point.createdAt,
               "updatedAt" -> point.updatedAt,
               "referencedAt" -> point.referencedAt,
-              "data" -> point.data,
-              "_url" -> routes.Graph.getPoint(accId, _id).absoluteURL()
-            ) +: array
+              "data" -> point.data
+            )
           }
+
           
-          val current: String = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?type=%s&limit=%d&offset=%d".format(typeString, limit, offset)
-          val next = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?type=%s&limit=%d&offset=%d".format(typeString, limit, offset+limit)
-          val prev = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?type=%s&limit=%d&offset=%d".format(typeString, limit, math.max(0,offset-limit) )
-          // var next: String = ""
-          // var prev: String = ""
-          // if(list.length > offset + limit){
-          //   next = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?type=%s&limit=%d&offset%d".format(typeString, limit, offset+limit)
-          // }else{
-          //   next = current + '#'
-          // }
-          // val pages = offset / limit
-          // if(pages > 0){
-          //   prev = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?type=%s&limit=%d&offset%d".format(typeString, limit, math.min(0,offset-limit) )
-          // }else{
-          //   prev = current + '#'
-          // }
           var result: JsObject = Json.obj(
             "status" -> Json.obj(
                 "code" -> 200,
@@ -399,10 +385,17 @@ object Graph extends Controller with Secured {
               ),
             "points" -> array,
             "_length" -> list.length, 
-            "_previous" -> prev,
-            "_current" -> current,
-            "_next" -> next
-            )
+            "length" -> list.length,
+            "size" -> total
+          )
+          result ++= Json.obj("url" -> (routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?type=%s".format(typeString)))
+          result ++= Json.obj("current" -> (routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?type=%s&limit=%d&offset=%d".format(typeString, limit, offset)))
+          if(total > offset+limit){
+            result ++= Json.obj("next" -> (routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?type=%s&limit=%d&offset=%d".format(typeString, limit, offset+limit)))
+          }
+          if( offset > 0 && (offset < limit || offset-limit >= 0)) {
+            result ++= Json.obj("previous" -> (routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?type=%s&limit=%d&offset=%d".format(typeString, limit, math.max(0, offset-limit))))
+          }
           request.queryString.get("callback").flatMap(_.headOption) match {
             case Some(callback) => Ok(Jsonp(callback, result))
             case None => Ok(result)
@@ -410,10 +403,12 @@ object Graph extends Controller with Secured {
         }
       }else if(identifier != ""){
         val list: List[Point] = Point.findAllByIdentifier(accId, identifier, limit, offset)
+        val total = Point.countByIdentifier(accId, identifier)
+
         if(list.length == 0){
           request.queryString.get("callback").flatMap(_.headOption) match {
-            case Some(callback) => Ok(Jsonp(callback, Application.JsonStatus(404, "Point not found")))
-            case None => Application.NotFoundJson(404, "Point not found")
+            case Some(callback) => Ok(Jsonp(callback, Application.JsonStatus(404, "Point not found. Out of %d.".format(total))))
+            case None => Application.NotFoundJson(404, "Point not found. Out of %d.".format(total))
           }
         }else{
           var array: JsArray = new JsArray()
@@ -427,32 +422,18 @@ object Graph extends Controller with Secured {
               throw new Exception("point(typeId=%1$d) isn't supported.".format(point.typeId))
             }
 
-            array = Json.obj(
+            array +:= Json.obj(
               "id" -> _id,
               "type" -> ptn,
               "identifier" -> point.identifier,
               "createdAt" -> point.createdAt,
               "updatedAt" -> point.updatedAt,
               "referencedAt" -> point.referencedAt,
-              "data" -> point.data,
-              "_url" -> routes.Graph.getPoint(accId, _id).absoluteURL()
-            ) +: array
+              "data" -> point.data
+            )
           }
           
-          val current: String = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?identifier=%s&limit=%d&offset%d".format(identifier, limit, offset)
-          var next: String = ""
-          var prev: String = ""
-          if(list.length > offset + limit){
-            next = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?identifier=%s&limit=%d&offset%d".format(identifier, limit, offset+limit)
-          }else{
-            next = current + '#'
-          }
-          val pages = offset / limit
-          if(pages > 0){
-            prev = routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?identifier=%s&limit=%d&offset%d".format(identifier, limit, math.min(0,offset-limit) )
-          }else{
-            prev = current + '#'
-          }
+
           var result: JsObject = Json.obj(
             "status" -> Json.obj(
                 "code" -> 200,
@@ -460,10 +441,19 @@ object Graph extends Controller with Secured {
               ),
             "points" -> array,
             "_length" -> list.length,
-            "_previous" -> prev,
-            "_current" -> current,
-            "_next" -> next
-            )
+            "length" -> list.length,
+            "size" -> total
+          )
+
+          result ++= Json.obj("url" -> (routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?identifier=%s".format(identifier)))
+          result ++= Json.obj("current" -> (routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?identifier=%s&limit=%d&offset=%d".format(identifier, limit, offset)))
+          if(total > offset+limit){
+            result ++= Json.obj("next" -> (routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?identifier=%s&limit=%d&offset=%d".format(identifier, limit, offset+limit)))
+          }
+          if( offset > 0 && (offset < limit || offset-limit >= 0)) {
+            result ++= Json.obj("previous" -> (routes.Graph.getPointByTypeOrIdentifier(accId).absoluteURL() + "?identifier=%s&limit=%d&offset=%d".format(identifier, limit, math.max(0, offset-limit))))
+          }
+
           request.queryString.get("callback").flatMap(_.headOption) match {
             case Some(callback) => Ok(Jsonp(callback, result))
             case None => Ok(result)
