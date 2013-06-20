@@ -281,7 +281,7 @@ object Edges extends Controller with Secured {
                         "updatedAt" -> sModel.updatedAt,
                         "referencedAt" -> sModel.referencedAt,
                         "data" -> sModel.data,
-                        "_url" -> routes.Graph.getPoint(accId, sModel.id.get.toLong).absoluteURL()
+                        "url" -> routes.Graph.getPoint(accId, sModel.id.get.toLong).absoluteURL()
                       ),
                       "verb" -> edge.v,
                       "objectId" -> edge.oId,
@@ -294,10 +294,10 @@ object Edges extends Controller with Secured {
                         "updatedAt" -> oModel.updatedAt,
                         "referencedAt" -> oModel.referencedAt,
                         "data" -> oModel.data,
-                        "_url" -> routes.Graph.getPoint(accId, oModel.id.get.toLong).absoluteURL()
+                        "url" -> routes.Graph.getPoint(accId, oModel.id.get.toLong).absoluteURL()
                       ),
                       "createdAt" -> edge.createdAt,
-                      "_url" -> (routes.Edges.find(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL())
+                      "url" -> (routes.Edges.find(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL())
                     )
                   }
                   case (None, Some(_)) => {
