@@ -9,17 +9,30 @@ GET 	/v1/account/:accId/order/:oId 		controllers.Query.getOrder(accId: Long, oId
 POST 	/v1/account/:accId/fiter		 	    controllers.Query.addFilter(accId: Long)
 POST 	/v1/account/:accId/order 			    controllers.Query.addOrder(accId: Long)
 
-# External API
+# External API version 1.0
 GET   /v1/account/:accId/point/:pId     controllers.Graph.getPoint(accId: Long, pId: Long)
-GET   /v1/account/:accId/point 	        controllers.Graph.getPointByTypeOrIdentifier(accId: Long)
-GET 	/v1/account/:accId/points/type 		controllers.Graph.getPointTypes(accId: Long)
-GET 	/v1/account/:accId/points/latest	controllers.Graph.getPointLatest(accId: Long)
+GET   /v1/account/:accId/point          controllers.Graph.getPointByTypeOrIdentifier(accId: Long)
+GET   /v1/account/:accId/points/type    controllers.Graph.getPointTypes(accId: Long)
+GET   /v1/account/:accId/points/latest  controllers.Graph.getPointLatest(accId: Long)
 POST  /v1/account/:accId/point          controllers.Graph.addPoint(accId: Long)
 GET   /v1/post/account/:accId/point     controllers.Graph.addPoint(accId: Long)
 
-GET 	/v1/account/:accId/edge 			    controllers.Edges.find(accId: Long, subjectId: Long ?= -1L, subjectType: String ?= "", subjectIdentifier: String ?= "", verb: String ?= "", objectId: Long ?= -1L, objectType: String ?= "", objectIdentifier: String ?= "", getInnerPoints: Boolean ?= false, limit: Int ?= 100, offset: Int ?= 0)
-POST 	/v1/account/:accId/edge 			    controllers.Graph.linkWithEdge(accId: Long)
-GET 	/v1/post/account/:accId/edge 		  controllers.Graph.linkWithEdge(accId: Long)
+GET   /v1/account/:accId/edge           controllers.Edges.find(accId: Long, subjectId: Long ?= -1L, subjectType: String ?= "", subjectIdentifier: String ?= "", verb: String ?= "", objectId: Long ?= -1L, objectType: String ?= "", objectIdentifier: String ?= "", getInnerPoints: Boolean ?= false, limit: Int ?= 100, offset: Int ?= 0)
+POST  /v1/account/:accId/edge           controllers.Graph.linkWithEdge(accId: Long)
+GET   /v1/post/account/:accId/edge      controllers.Graph.linkWithEdge(accId: Long)
+
+# External API version 1.0
+GET   /v1.1/account/:accId/point/:pId     controllers.v11.Points.find(accId: Long, pId: Long)
+GET   /v1.1/account/:accId/point          controllers.v11.Points.findByTypeOrIdentifier(accId: Long)
+GET   /v1.1/account/:accId/points/type    controllers.v11.Points.findTypes(accId: Long)
+GET   /v1.1/account/:accId/points/latest  controllers.v11.Points.findLatest(accId: Long)
+POST  /v1.1/account/:accId/point          controllers.v11.Points.add(accId: Long)
+GET   /v1.1/post/account/:accId/point     controllers.v11.Points.add(accId: Long)
+
+GET   /v1.1/account/:accId/edge           controllers.v11.Edges.find(accId: Long, subjectId: Long ?= -1L, subjectType: String ?= "", subjectIdentifier: String ?= "", verb: String ?= "", objectId: Long ?= -1L, objectType: String ?= "", objectIdentifier: String ?= "", getInnerPoints: Boolean ?= false, limit: Int ?= 100, offset: Int ?= 0)
+POST  /v1.1/account/:accId/edge           controllers.v11.Edges.link(accId: Long)
+GET   /v1.1/post/account/:accId/edge      controllers.v11.Edges.link(accId: Long)
+
 
 # Map static resources from the /public folder to the /assets URL path
 GET   /assets/*file                     controllers.Assets.at(path="/public", file)
