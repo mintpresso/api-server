@@ -298,6 +298,7 @@ object Edges extends Controller with Secured {
                         "data" -> oModel.data,
                         "url" -> controllers.v11.routes.Points.find(accId, oModel.id.get.toLong).absoluteURL()
                       ),
+                      "data" -> edge.data,
                       "createdAt" -> edge.createdAt,
                       "url" -> (controllers.v11.routes.Edges.find(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL())
                     )
@@ -321,7 +322,8 @@ object Edges extends Controller with Secured {
                   "verb" -> edge.v,
                   "objectId" -> edge.oId,
                   "objectType" -> objectType,
-                  "createdAt" -> edge.createdAt
+                  "createdAt" -> edge.createdAt,
+                  "data" -> edge.data
                 )
               }
             }
@@ -332,7 +334,8 @@ object Edges extends Controller with Secured {
               "verb" -> edge.v,
               "objectId" -> edge.oId,
               "objectType" -> objectType,
-              "createdAt" -> edge.createdAt
+              "createdAt" -> edge.createdAt,
+              "data" -> edge.data
             )
           }
         }
@@ -478,7 +481,7 @@ object Edges extends Controller with Secured {
                 throw new Exception("point(id=%1$s) '%2$s' point(id=%3$s): no self-reference and iteratable relationship are allowed.".format(sId, v, oId))
               }
 
-              val edge = Edge( accId, sId, sTypeId, v, oId, oTypeId )
+              val edge = Edge( accId, sId, sTypeId, v, oId, oTypeId, _data.getOrElse(Json.obj()) )
 
               Edge.add( edge ) map { id: Long =>
                 import java.util.Date
