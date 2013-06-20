@@ -512,14 +512,14 @@ object Edges extends Controller with Secured {
               }
             },
             invalid = { error =>
-              throw new Exception("{ edge: { ... } } Json object required. (%1$s)".format(error.head._1.toJsonString.split('.')(1)))
+              throw new Exception("{ edge: { %1$s: ? } } Json value '%1$s' required. (make sure Number and String)".format(error.head._1.toJsonString.split('.')(1)))
             }
           )
         } getOrElse {
-          throw new Exception("point(?) '...' point(?): no points are selected.")
+          throw new Exception("{ edge: { ... } } Json object required.")
         }
       } getOrElse {
-        throw new Exception("point(?) '...' point(?): no points are selected.")
+        throw new Exception("Json body required. (Content-Type: application/json)")
       }
     } catch { 
       case e: Exception =>
