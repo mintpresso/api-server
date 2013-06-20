@@ -288,7 +288,7 @@ object Graph extends Controller with Secured {
     var typeString: String = request.queryString.get("type").flatMap(_.headOption).getOrElse("").toString
     var identifier: String = request.queryString.get("identifier").flatMap(_.headOption).getOrElse("").toString
     val Number = "([0-9]+)".r
-    var limit: Int = 100
+    var limit: Int = 10
     var offset: Int = 0
     request.queryString.get("limit").flatMap(_.headOption).getOrElse(10) match {
       case Number(_s) => {
