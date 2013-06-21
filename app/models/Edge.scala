@@ -10,7 +10,7 @@ import play.api.libs.json._
 import play.api.libs.json.Json._
 import scala.collection.mutable.LinkedHashMap
 
-case class Edge(id: Pk[Any], accountId: Long, sId: Long, sType: Long, v: String, oId: Long, oType: Long, createdAt: Date){
+case class Edge(id: Pk[Any], accountId: Long, sId: Long, sType: Long, v: String, oId: Long, oType: Long, var createdAt: Date, var updatedAt: Date, var data: JsValue){
 
 }
 object MetaQueryBuilder { 
@@ -64,15 +64,17 @@ object Edge {
     get[Long]("oId")~
     get[Long]("oType")~ 
     get[Date]("createdAt")~
-    get[Long]("accountId") map {
-      case pk~l1~l2~s1~l3~l4~d1~l5 => {
-        new Edge(pk, l5, l1, l2, s1, l3, l4, d1)
+    get[Date]("updatedAt")~
+    get[Long]("accountId")~
+    get[String]("data") map {
+      case pk~l1~l2~s1~l3~l4~d1~d2~l5~s2 => {
+        new Edge(pk, l5, l1, l2, s1, l3, l4, d1, d2, Json.parse(s2))
       }
     }
   }
 
-  def apply(accountId: Long, sId: Long, sTypeId: Long, v: String, oId: Long, oTypeId: Long): Edge = {
-    new Edge(anorm.NotAssigned, accountId, sId, sTypeId, v, oId, oTypeId, new Date())
+  def apply(accountId: Long, sId: Long, sTypeId: Long, v: String, oId: Long, oTypeId: Long, data: JsObject = Json.obj()): Edge = {
+    new Edge(anorm.NotAssigned, accountId, sId, sTypeId, v, oId, oTypeId, new Date(), new Date(), data)
   }
  
   def find(accountId: Long, conditions: Map[String, String], additional: LinkedHashMap[String, String]): List[Edge] = {
@@ -91,12 +93,39 @@ object Edge {
     }
   }
 
+  // update only data(json)
+  def update(edge: Edge): Int = {
+    DB.withConnection { implicit conn =>
+      SQL(
+        """
+          update `edges` set `data` = {data} where `id` = {edgeId}
+        """
+      ).on(
+        'data     -> edge.data.toString,
+        'edgeId  -> edge.id.get
+      ).executeUpdate()
+    }
+  }
+
+  def updated(id: Long, date: Date = new Date()): Int = {
+    DB.withConnection { implicit conn =>
+      SQL(
+        """
+          update `edges` set `updatedAt` = {updatedAt} where `id` = {edgeId}
+        """
+      ).on(
+        'updatedAt  -> date,
+        'edgeId    -> id
+      ).executeUpdate()
+    }
+  }
+
   def add(edge: Edge): Option[Long] = {
     DB.withConnection { implicit conn =>
       SQL(
         """
-        insert into edges (sId, sType, v, oId, oType, createdAt, accountId)
-        values ({sId}, {sType}, {v}, {oId}, {oType}, {createdAt}, {accountId})
+        insert into edges (sId, sType, v, oId, oType, createdAt, updatedAt, accountId, data)
+        values ({sId}, {sType}, {v}, {oId}, {oType}, {createdAt}, {updatedAt}, {accountId}, {data})
         """
       ).on(
         'sId -> edge.sId,
@@ -105,9 +134,17 @@ object Edge {
         'oId -> edge.oId,
         'oType -> edge.oType,
         'createdAt -> edge.createdAt,
-        'accountId -> edge.accountId
+        'updatedAt -> edge.updatedAt,
+        'accountId -> edge.accountId,
+        'data -> Json.stringify(edge.data)
       ).executeInsert()
-      Some(0L)
+    }
+  }
+
+  def remove(accountId: Long, conditions: Map[String, String], additional: LinkedHashMap[String, String]): Int = {
+    DB.withConnection { implicit conn =>
+      val where = Map("accountId" -> accountId.toString) ++ conditions
+      MetaQueryBuilder("DELETE FROM `edges`", where, additional).executeUpdate()
     }
   }
 }
