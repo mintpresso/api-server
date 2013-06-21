@@ -29,7 +29,8 @@ GET   /v1.1/account/:accId/points/latest  controllers.v11.Points.findLatest(accI
 POST  /v1.1/account/:accId/point          controllers.v11.Points.add(accId: Long)
 GET   /v1.1/post/account/:accId/point     controllers.v11.Points.add(accId: Long)
 
-GET   /v1.1/account/:accId/edge           controllers.v11.Edges.find(accId: Long, subjectId: Long ?= -1L, subjectType: String ?= "", subjectIdentifier: String ?= "", verb: String ?= "", objectId: Long ?= -1L, objectType: String ?= "", objectIdentifier: String ?= "", getInnerPoints: Boolean ?= false, limit: Int ?= 100, offset: Int ?= 0)
+GET   /v1.1/account/:accId/edge           controllers.v11.Edges.find(accId: Long, subjectId: Long ?= -1L, subjectType: String ?= "", subjectIdentifier: String ?= "", verb: String ?= "", objectId: Long ?= -1L, objectType: String ?= "", objectIdentifier: String ?= "", getInnerPoints: Boolean ?= false, limit: Int ?= 100, offset: Int ?= 0, newest: String ?= "", oldest: String ?= "")
+DELETE /v1.1/account/:accId/edge          controllers.v11.Edges.unlink(accId: Long, subjectId: Long ?= -1L, subjectType: String ?= "", subjectIdentifier: String ?= "", verb: String ?= "", objectId: Long ?= -1L, objectType: String ?= "", objectIdentifier: String ?= "", limit: Int ?= 1, newest: String ?= "", oldest: String ?= "")
 POST  /v1.1/account/:accId/edge           controllers.v11.Edges.link(accId: Long)
 GET   /v1.1/post/account/:accId/edge      controllers.v11.Edges.link(accId: Long)
 

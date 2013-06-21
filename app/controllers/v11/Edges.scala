@@ -570,7 +570,7 @@ object Edges extends Controller with Secured {
     subjectId: Long = -1, subjectType: String = "", subjectIdentifier: String = "",
     verb: String = "",
     objectId: Long = -1L, objectType: String = "", objectIdentifier: String = "",
-    limit: Int = 100, offset: Int = 0, newest: String = "", oldest: String = "") = SignedAPI(accId) { implicit request =>
+    limit: Int = 1, newest: String = "", oldest: String = "") = SignedAPI(accId) { implicit request =>
     
     try {
       var sId: Long     = subjectId
@@ -614,10 +614,6 @@ object Edges extends Controller with Secured {
 
       if(limit < 1){
         throw new Exception("edge(?): limit must be equal or bigger than 1.")
-      }
-
-      if(offset < 0){
-        throw new Exception("edge(?): offset must start from 0.")
       }
 
       if(v.length == 1 || v.length == 2){
@@ -792,13 +788,13 @@ object Edges extends Controller with Secured {
         additional += ("order by" -> "`createdAt` asc")
       }
       // limit and offset
-      additional += ("limit" -> ("%d, %d".format(offset, limit)))
+      additional += ("limit" -> ("%d".format(limit)))
 
       val affectedRows = Edge.remove(accId, conditions, additional)
       
       request.queryString.get("callback").flatMap(_.headOption) match {
-        case Some(callback) => Ok(Jsonp(callback, Application.JsonStatus(404, "Edge removed. (%d)".format(affectedRows))))
-        case None => Application.NotFoundJson(404, "Edge not found. (%d)".format(affectedRows))
+        case Some(callback) => Ok(Jsonp(callback, Application.JsonStatus(200, "Edge removed. (%d)".format(affectedRows))))
+        case None => Ok(Application.JsonStatus(200, "Edge removed. (%d)".format(affectedRows)))
       }
     } catch { 
       case e: Exception =>
