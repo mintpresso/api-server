@@ -401,8 +401,6 @@ object Edges extends Controller with Secured {
       }
       content.map { json =>
         (json \ "edge").asOpt[JsObject].map { e =>
-          // subjectId => subjectIdentifier
-          // objectId => objectIdentifier
           val edgeRead = (
             (__ \ "subjectId").readNullable[Long] ~
             (__ \ "subjectIdentifier").readNullable[String] ~
@@ -512,6 +510,134 @@ object Edges extends Controller with Secured {
                   case Some(callback) => Ok(Jsonp(callback, json))
                   case None => InternalServerError(json)
                 }
+              }
+            },
+            invalid = { error =>
+              throw new Exception("{ edge: { %1$s: ? } } Json value '%1$s' required. (make sure Number and String)".format(error.head._1.toJsonString.split('.')(1)))
+            }
+          )
+        } getOrElse {
+          throw new Exception("{ edge: { ... } } Json object required.")
+        }
+      } getOrElse {
+        throw new Exception("Json body required. (Content-Type: application/json)")
+      }
+    } catch { 
+      case e: Exception =>
+        e.printStackTrace()
+        val json = Json.obj(
+          "status" -> Json.obj(
+            "code" -> 400,
+            "message" -> {
+              e.getMessage()
+            }
+          )
+        )
+        request.queryString.get("callback").flatMap(_.headOption) match {
+          case Some(callback) => Ok(Jsonp(callback, json))
+          case None => BadRequest(json)
+        }
+    }
+  }
+
+  def unlink(accId: Long) = SignedAPI(accId) { implicit request =>
+    try {
+      var content = request.body.asJson
+      request.queryString.get("json").flatMap(_.headOption) match {
+        case Some(json) => {
+          content = Some(Json.parse(json))
+        }
+        case None => {}
+      }
+      content.map { json =>
+        (json \ "edge").asOpt[JsObject].map { e =>
+          val edgeRead = (
+            (__ \ "subjectId").readNullable[Long] ~
+            (__ \ "subjectIdentifier").readNullable[String] ~
+            (__ \ "subjectType").readNullable[String] ~
+            (__ \ "verb").read[String] ~
+            (__ \ "objectId").readNullable[Long] ~
+            (__ \ "objectIdentifier").readNullable[String] ~
+            (__ \ "objectType").readNullable[String]
+          ) tupled
+
+          edgeRead.reads(e).fold(
+            valid = { edgeContent =>   
+              var (_sId, _sIdentifier, _sType, v, _oId, _oIdentifier, _oType) = edgeContent
+              
+              var sId = 0L
+              var oId = 0L
+              var sTypeId = 0L
+              var oTypeId = 0L
+
+              if(v.length < 3){
+                throw new Exception("point(type=?, id=?) '?' point(type=?, id=?): verb must have at least 3 characters.")
+              }
+              if(v.length > 20){
+                throw new Exception("point(type=?, id=?) '?' point(type=?, id=?): verb must have less than or 20 characters.")
+              }
+
+              _sId map { id =>
+                Point.findOneById(accId, id) map { point =>
+                  sId = point.id.get
+                  sTypeId = point.typeId
+                } getOrElse {
+                  throw new Exception("unknown point(id=%3$s, type=%1$s, identifier=%2$s) '%4$s' point(...): subject point isn't found.".format(_sType.getOrElse("?"), _sIdentifier.getOrElse("?"), id, v))
+                }
+              } getOrElse {
+                (_sIdentifier, _sType) match {
+                  case (Some(i), Some(t)) => {
+                    Point.findOneByTypeNameAndIdentifier(accId, t, i) map { point =>
+                      sId = point.id.get
+                      sTypeId = point.typeId 
+                    } getOrElse {
+                      throw new Exception("unknown point(id=%3$s, type=%1$s, identifier=%2$s) '%4$s' point(...): subject point isn't found.".format(t, i, "?", v))
+                    }
+                  }
+                  case _ => {
+                    throw new Exception("unknown point(id=?, type=?, identifier=?) '%1$s' point(...): subject point isn't found.".format(v))
+                  }
+                }
+              }
+              
+              _oId map { id =>
+                Point.findOneById(accId, id) map { point =>
+                  oId = point.id.get
+                  oTypeId = point.typeId
+                } getOrElse {
+                  throw new Exception("point(...) '%4$s' point(id=%3$s, type=%1$s, identifier=%2$s): object point isn't found.".format(_oType.getOrElse("?"), _oIdentifier.getOrElse("?"), id, v))
+                }
+              } getOrElse {
+                (_oIdentifier, _oType) match {
+                  case (Some(i), Some(t)) => {
+                    Point.findOneByTypeNameAndIdentifier(accId, t, i) map { point =>
+                      oId = point.id.get
+                      oTypeId = point.typeId 
+                    } getOrElse {
+                      throw new Exception("point(...) '%4$s' unknown point(id=%3$s, type=%1$s, identifier=%2$s): object point isn't found.".format(t, i, "?", v))
+                    }
+                  }
+                  case _ => {
+                    throw new Exception("point(...) '%1$s' unknown point(id=?, type=?, identifier=?): object point isn't found.".format(v))
+                  }
+                }
+              }
+
+              // references between same type, identifier are okay
+              if(sId == oId){
+                throw new Exception("point(id=%1$s) '%2$s' point(id=%3$s): no self-reference and iteratable relationship are allowed.".format(sId, v, oId))
+              }
+
+              val affectedRows = Edge.remove( Edge( accId, sId, sTypeId, v, oId, oTypeId ) )
+              val json = Json.obj(
+                "status" -> Json.obj(
+                  "code" -> 200,
+                  "message" -> "Edge removed. (%d)".format(affectedRows)
+                )
+              )
+              request.queryString.get("callback").flatMap(_.headOption) match {
+                case Some(callback) => Created(Jsonp(callback, json))
+                case None => Created(json)
               }
             },
             invalid = { error =>
