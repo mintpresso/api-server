@@ -540,115 +540,239 @@ object Edges extends Controller with Secured {
     }
   }
 
-  def unlink(accId: Long) = SignedAPI(accId) { implicit request =>
+  def unlink( accId: Long,
+    subjectId: Long = -1, subjectType: String = "", subjectIdentifier: String = "",
+    verb: String = "",
+    objectId: Long = -1L, objectType: String = "", objectIdentifier: String = "",
+    limit: Int = 100, offset: Int = 0, newest: String = "", oldest: String = "") = SignedAPI(accId) { implicit request =>
+    
     try {
-      var content = request.body.asJson
-      request.queryString.get("json").flatMap(_.headOption) match {
-        case Some(json) => {
-          content = Some(Json.parse(json))
-        }
-        case None => {}
+      var sId: Long     = subjectId
+      var sType         = subjectType
+      var sTypeId       = -1L
+      var sIdentifier   = subjectIdentifier
+      var v             = verb
+      var oId           = objectId
+      var oType         = objectType
+      var oTypeId       = -1L
+      var oIdentifier   = objectIdentifier
+
+      var complexity = 0.0
+      var audit: List[(String, Long)] = List()
+      // check complexity
+      if(v == ""){
+        complexity += 3
+        audit = ("no verb = 3", 3L) +: audit
       }
-      content.map { json =>
-        (json \ "edge").asOpt[JsObject].map { e =>
-          val edgeRead = (
-            (__ \ "subjectId").readNullable[Long] ~
-            (__ \ "subjectIdentifier").readNullable[String] ~
-            (__ \ "subjectType").readNullable[String] ~
-            (__ \ "verb").read[String] ~
-            (__ \ "objectId").readNullable[Long] ~
-            (__ \ "objectIdentifier").readNullable[String] ~
-            (__ \ "objectType").readNullable[String]
-          ) tupled
+      var sDefined = true
+      var oDefined = true
 
-          edgeRead.reads(e).fold(
-            valid = { edgeContent =>   
-              var (_sId, _sIdentifier, _sType, v, _oId, _oIdentifier, _oType) = edgeContent
-              
-              var sId = 0L
-              var oId = 0L
-              var sTypeId = 0L
-              var oTypeId = 0L
-
-              if(v.length < 3){
-                throw new Exception("point(type=?, id=?) '?' point(type=?, id=?): verb must have at least 3 characters.")
-              }
-              if(v.length > 20){
-                throw new Exception("point(type=?, id=?) '?' point(type=?, id=?): verb must have less than or 20 characters.")
-              }
-
-              _sId map { id =>
-                Point.findOneById(accId, id) map { point =>
-                  sId = point.id.get
-                  sTypeId = point.typeId
-                } getOrElse {
-                  throw new Exception("unknown point(id=%3$s, type=%1$s, identifier=%2$s) '%4$s' point(...): subject point isn't found.".format(_sType.getOrElse("?"), _sIdentifier.getOrElse("?"), id, v))
-                }
-              } getOrElse {
-                (_sIdentifier, _sType) match {
-                  case (Some(i), Some(t)) => {
-                    Point.findOneByTypeNameAndIdentifier(accId, t, i) map { point =>
-                      sId = point.id.get
-                      sTypeId = point.typeId 
-                    } getOrElse {
-                      throw new Exception("unknown point(id=%3$s, type=%1$s, identifier=%2$s) '%4$s' point(...): subject point isn't found.".format(t, i, "?", v))
-                    }
-                  }
-                  case _ => {
-                    throw new Exception("unknown point(id=?, type=?, identifier=?) '%1$s' point(...): subject point isn't found.".format(v))
-                  }
-                }
-              }
-              
-              _oId map { id =>
-                Point.findOneById(accId, id) map { point =>
-                  oId = point.id.get
-                  oTypeId = point.typeId
-                } getOrElse {
-                  throw new Exception("point(...) '%4$s' point(id=%3$s, type=%1$s, identifier=%2$s): object point isn't found.".format(_oType.getOrElse("?"), _oIdentifier.getOrElse("?"), id, v))
-                }
-              } getOrElse {
-                (_oIdentifier, _oType) match {
-                  case (Some(i), Some(t)) => {
-                    Point.findOneByTypeNameAndIdentifier(accId, t, i) map { point =>
-                      oId = point.id.get
-                      oTypeId = point.typeId 
-                    } getOrElse {
-                      throw new Exception("point(...) '%4$s' unknown point(id=%3$s, type=%1$s, identifier=%2$s): object point isn't found.".format(t, i, "?", v))
-                    }
-                  }
-                  case _ => {
-                    throw new Exception("point(...) '%1$s' unknown point(id=?, type=?, identifier=?): object point isn't found.".format(v))
-                  }
-                }
-              }
-
-              // references between same type, identifier are okay
-              if(sId == oId){
-                throw new Exception("point(id=%1$s) '%2$s' point(id=%3$s): no self-reference and iteratable relationship are allowed.".format(sId, v, oId))
-              }
-
-              val affectedRows = Edge.remove( Edge( accId, sId, sTypeId, v, oId, oTypeId ) )
-              val json = Json.obj(
-                "status" -> Json.obj(
-                  "code" -> 200,
-                  "message" -> "Edge removed. (%d)".format(affectedRows)
-                )
-              )
-              request.queryString.get("callback").flatMap(_.headOption) match {
-                case Some(callback) => Created(Jsonp(callback, json))
-                case None => Created(json)
-              }
-            },
-            invalid = { error =>
-              throw new Exception("{ edge: { %1$s: ? } } Json value '%1$s' required. (make sure Number and String)".format(error.head._1.toJsonString.split('.')(1)))
-            }
-          )
-        } getOrElse {
-          throw new Exception("{ edge: { ... } } Json object required.")
+      (newest.length, oldest.length) match {
+        case (0, 0) =>
+        case (0, _) => {
+          oldest match {
+            case "created" => 
+            case "updated" =>
+            case _ => throw new Exception("edge(?): oldest supports: 'created', 'updated'.")
+          }
         }
-      } getOrElse {
-        throw new Exception("Json body required. (Content-Type: application/json)")
+        case (_, 0) => {
+          newest match {
+            case "created" => 
+            case "updated" => 
+            case _ => throw new Exception("edge(?): newest supports: 'created', 'updated'.")
+          }
+        }
+        case (_, _) => throw new Exception("edge(?): cannot apply both newest(%s) and oldest(%s). Select one.".format(newest, oldest))
+      }
+
+      if(limit < 1){
+        throw new Exception("edge(?): limit must be equal or bigger than 1.")
+      }
+
+      if(offset < 0){
+        throw new Exception("edge(?): offset must start from 0.")
+      }
+
+      if(v.length == 1 || v.length == 2){
+        throw new Exception("edge(?): verb must have at least 3 characters.")
+      }
+      if(v.length > 20){
+        throw new Exception("edge(?): verb must have less than or 20 characters.")
+      }
+      
+      if(sId != -1){
+        Point.getTypeId(accId, sId) match {
+          case Some(id: Long) => {
+            sTypeId = id
+          }
+          case _ => throw new Exception("unknown point(id=%1$s): subject point isn't found.".format(sId))
+        }
+      }
+
+      if(oId != -1){
+        Point.getTypeId(accId, oId) match {
+          case Some(id: Long) => {
+            oTypeId = id
+          }
+          case _ => throw new Exception("unknown point(id=%1$s): object point isn't found.".format(oId))
+        }
+      }
+
+      if(sType.length > 0){
+        PointType.findOneByName(sType).map { pt =>
+          sTypeId = pt.id.get
+          if(sIdentifier.length > 0){
+            Point.findOneByTypeIdAndIdentifier(accId, sTypeId, sIdentifier).map { point =>
+              sId = point.id.get
+            }.getOrElse {
+              throw new Exception("edge(?): subject identifier of '%1$s' cannot be found.".format(sIdentifier))
+            }
+          }
+        }.getOrElse {
+          throw new Exception("edge(?): subject type of '%1$s' isn't supported.".format(sType))
+        }
+      }
+
+      if(oType.length > 0){
+        PointType.findOneByName(oType).map { pt =>
+          oTypeId = pt.id.get
+          if(oIdentifier.length > 0){
+            Point.findOneByTypeIdAndIdentifier(accId, oTypeId, oIdentifier).map { point =>
+              oId = point.id.get
+            }.getOrElse {
+              throw new Exception("edge(?): object identifier of '%1$s' cannot be found.".format(oIdentifier))
+            }
+          }
+        }.getOrElse {
+          throw new Exception("edge(?): object type of '%1$s' isn't supported.".format(oType))
+        }
+      }
+
+      if(sId == -1){
+        if(sType.length == 0){
+          if(sIdentifier.length == 0){
+            complexity += 2 
+            sDefined = false
+            // audit = ("no subject id & identifier & type = 2", 2L) +: audit
+          }else{
+            complexity += 0.7 
+            // audit = ("no subject id & type but identifier = 0.7", 2L) +: audit
+          }
+        }else{
+          if(sIdentifier.length == 0){
+            complexity += 1
+            // audit = ("no subject id & identifier but type is = 1", 1L) +: audit
+          }else{
+            // sDefined = true
+            // type + identifier = id
+          }
+        }
+      }
+      if(oId == -1){
+        if(oType.length == 0){
+          if(oIdentifier.length == 0){
+            complexity += 2 
+            oDefined = false
+            // audit = ("no object id & identifier & type = 2", 2L) +: audit
+          }else{
+            complexity += 0.7
+            // audit = ("no object id & type but identifier = 0.7", 2L) +: audit
+          }
+        }else{
+          if(oIdentifier.length == 0){
+            complexity += 1
+            // audit = ("no object id but type is = 1", 1L) +: audit
+          }else{
+            // oDefined = true
+            // type + identifier = id
+          }
+        }
+      }
+
+      //audit = (sDefined + " || " + oDefined, 0L) +: audit
+      if((sDefined || oDefined) == false){
+        complexity += 2
+        // audit = ("no models = 2", 2L) +: audit
+      }
+
+      // discount complexity when limit is given
+      if(limit <= 100){
+        complexity -= 0.5
+      }
+
+      // val sum = audit.foldLeft(("Audit logs: \n", 0L)){ (a: (String, Long), b: (String, Long)) =>
+      //   (a._1 + "\t" + b._1 + "\n", a._2 + b._2)
+      // }
+      // println("Comp = " + sum._2 + "\n" + sum._1)
+
+      val maxComplexity = 9
+      /*
+       * sId + v + oId = 0
+       * sType + v + oType = 2
+       * sId + v = 2
+       * sId + oId = 3
+       * sId = 5
+       * sType + oType = 5 (4.95 with limit)
+       * v = 6
+       */
+      if(complexity >= 5){
+        val uuid = java.util.UUID.randomUUID().toString
+        val p = com.mintpresso.Point(0, "error", uuid, Json.obj(
+          "message" -> "complexity limit reached. %f >= 5.000".format(complexity / maxComplexity),
+          "complexity" -> (complexity / maxComplexity),
+          "url" -> request.uri
+        ).toString, "", 0, 0, 0)
+
+        val _identifier = mintpresso.get(accId).get.identifier
+        mintpresso.set(p) match {
+          case Some(point) => mintpresso.set("user", _identifier, "log", "error", uuid)
+          case None => Logger.info("Not logged. Account("+_identifier+") uri("+request.uri+") complexity limit reached. %f >= 5.000".format(complexity / maxComplexity))
+        }
+        throw new Exception("edge(?): the pseudo edge specified in query has too many unknown fields. Calculated complexity is %f".format(complexity / maxComplexity))
+      }
+
+      // prepare variables and arguments
+      
+      // find cache
+
+      // generate new query for search
+      var conditions: Map[String, String] = Map()
+      var additional: LinkedHashMap[String, String] = LinkedHashMap()
+
+      // println("QUERY: %s / %s".format(sId, sTypeId))
+      if(sId != -1){
+        conditions += ("sId" -> sId.toString, "sType" -> sTypeId.toString)
+      }else if(sTypeId != -1){
+        conditions += ("sType" -> sTypeId.toString)
+      }
+      if(oId != -1){
+        conditions += ("oId" -> oId.toString, "oType" -> oTypeId.toString)
+      }else if(oTypeId != -1){
+        conditions += ("oType" -> oTypeId.toString)
+      }
+
+      if(v.length > 0){
+        conditions += ("v" -> v)
+      }
+
+      // order by `id` is inconsistent especially after recovery from backup, so we need to use datetime.
+      if(newest.length > 0){
+        additional += ("order by" -> ("`%sAt` desc".format(newest)))
+      }else if(oldest.length > 0){
+        // order by `created`
+        additional += ("order by" -> ("`%sAt` asc".format(oldest)))
+      }else{
+        additional += ("order by" -> "`createdAt` asc")
+      }
+      // limit and offset
+      additional += ("limit" -> ("%d, %d".format(offset, limit)))
+
+      val affectedRows = Edge.remove(accId, conditions, additional)
+      
+      request.queryString.get("callback").flatMap(_.headOption) match {
+        case Some(callback) => Ok(Jsonp(callback, Application.JsonStatus(404, "Edge removed. (%d)".format(affectedRows))))
+        case None => Application.NotFoundJson(404, "Edge not found. (%d)".format(affectedRows))
       }
     } catch { 
       case e: Exception =>
@@ -656,9 +780,7 @@ object Edges extends Controller with Secured {
         val json = Json.obj(
           "status" -> Json.obj(
             "code" -> 400,
-            "message" -> {
-              e.getMessage()
-            }
+            "message" -> e.getMessage()
           )
         )
         request.queryString.get("callback").flatMap(_.headOption) match {

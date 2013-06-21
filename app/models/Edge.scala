@@ -141,18 +141,10 @@ object Edge {
     }
   }
 
-  def remove(edge: Edge): Int = {
+  def remove(accountId: Long, conditions: Map[String, String], additional: LinkedHashMap[String, String]): Int = {
     DB.withConnection { implicit conn =>
-      SQL(
-        """
-        delete from `edges` where `accountId` = {accountId} and `sId` = {sId} and `v` = {v} and `oId` = {oId}
-        """
-      ).on(
-        'sId -> edge.sId,
-        'v -> edge.v,
-        'oId -> edge.oId,
-        'accountId -> edge.accountId
-      ).executeUpdate()
+      val where = Map("accountId" -> accountId.toString) ++ conditions
+      MetaQueryBuilder("DELETE FROM `edges`", where, additional).executeUpdate()
     }
   }
 }
