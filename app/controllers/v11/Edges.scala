@@ -25,7 +25,7 @@ object Edges extends Controller with Secured {
     subjectId: Long = -1, subjectType: String = "", subjectIdentifier: String = "",
     verb: String = "",
     objectId: Long = -1L, objectType: String = "", objectIdentifier: String = "",
-    getInnerPoints: Boolean = false, limit: Int = 100, offset: Int = 0) = SignedAPI(accId) { implicit request =>
+    getInnerPoints: Boolean = false, limit: Int = 100, offset: Int = 0, newest: String = "", oldest: String = "") = SignedAPI(accId) { implicit request =>
     
     try {
       var sId: Long     = subjectId
@@ -48,7 +48,24 @@ object Edges extends Controller with Secured {
       var sDefined = true
       var oDefined = true
 
-      var param = List[(String, Any)]()
+      (newest.length, oldest.length) match {
+        case (0, 0) =>
+        case (0, _) => {
+          oldest match {
+            case "created" => 
+            case "updated" =>
+            case _ => throw new Exception("edge(?): oldest supports: 'created', 'updated'.")
+          }
+        }
+        case (_, 0) => {
+          newest match {
+            case "created" => 
+            case "updated" => 
+            case _ => throw new Exception("edge(?): newest supports: 'created', 'updated'.")
+          }
+        }
+        case (_, _) => throw new Exception("edge(?): cannot apply both newest(%s) and oldest(%s). Select one.".format(newest, oldest))
+      }
 
       if(limit < 1){
         throw new Exception("edge(?): limit must be equal or bigger than 1.")
@@ -220,11 +237,17 @@ object Edges extends Controller with Secured {
         conditions += ("v" -> v)
       }
 
-      // order by `id`
-      // additional += ("order by" -> "`id` asc")
-      
+      // order by `id` is inconsistent especially after recovery from backup, so we need to use datetime.
+      if(newest.length > 0){
+        additional += ("order by" -> ("`%sAt` desc".format(newest)))
+      }else if(oldest.length > 0){
+        // order by `created`
+        additional += ("order by" -> ("`%sAt` asc".format(oldest)))
+      }else{
+        additional += ("order by" -> "`createdAt` asc")
+      }
       // limit and offset
-      additional += ("limit" -> "%d, %d".format(offset, limit))
+      additional += ("limit" -> ("%d, %d".format(offset, limit)))
 
       val list: List[Edge] = Edge.find(accId, conditions, additional)
       val total = Edge.count(accId, conditions)
@@ -272,7 +295,7 @@ object Edges extends Controller with Secured {
                   case (Some(_sType), Some(_oType)) => {
                     val sModelType = _sType.name
                     val oModelType = _oType.name
-                    array +:= Json.obj(
+                    array :+= Json.obj(
                       "subjectId" -> edge.sId,
                       "subjectType" -> subjectType,
                       "subject" -> Json.obj(
@@ -300,6 +323,7 @@ object Edges extends Controller with Secured {
                       ),
                       "data" -> edge.data,
                       "createdAt" -> edge.createdAt,
+                      "updatedAt" -> edge.updatedAt,
                       "url" -> (controllers.v11.routes.Edges.find(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier).absoluteURL())
                     )
                   }
@@ -316,25 +340,27 @@ object Edges extends Controller with Secured {
               }
               case (_, _) => {
                 // one or both not found, ignore innerModels
-                array +:= Json.obj(
+                array :+= Json.obj(
                   "subjectId" -> edge.sId,
                   "subjectType" -> subjectType,
                   "verb" -> edge.v,
                   "objectId" -> edge.oId,
                   "objectType" -> objectType,
                   "createdAt" -> edge.createdAt,
+                  "updatedAt" -> edge.updatedAt,
                   "data" -> edge.data
                 )
               }
             }
           }else{
-            array +:= Json.obj(
+            array :+= Json.obj(
               "subjectId" -> edge.sId,
               "subjectType" -> subjectType,
               "verb" -> edge.v,
               "objectId" -> edge.oId,
               "objectType" -> objectType,
               "createdAt" -> edge.createdAt,
+              "updatedAt" -> edge.updatedAt,
               "data" -> edge.data
             )
           }
@@ -352,12 +378,12 @@ object Edges extends Controller with Secured {
           )
 
         result ++= Json.obj("url" -> (controllers.v11.routes.Edges.find(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier, getInnerPoints).absoluteURL()))
-        result ++= Json.obj("current" -> (controllers.v11.routes.Edges.find(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier, getInnerPoints, limit, offset).absoluteURL()))
+        result ++= Json.obj("current" -> (controllers.v11.routes.Edges.find(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier, getInnerPoints, limit, offset, newest, oldest).absoluteURL()))
         if(total > offset+limit){
-          result ++= Json.obj("next" -> (controllers.v11.routes.Edges.find(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier, getInnerPoints, limit, offset+limit).absoluteURL()))
+          result ++= Json.obj("next" -> (controllers.v11.routes.Edges.find(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier, getInnerPoints, limit, offset+limit, newest, oldest).absoluteURL()))
         }
         if( offset > 0 && (offset < limit || offset-limit >= 0)) {
-          result ++= Json.obj("previous" -> (controllers.v11.routes.Edges.find(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier, getInnerPoints, limit, math.max(0, offset-limit)).absoluteURL()))
+          result ++= Json.obj("previous" -> (controllers.v11.routes.Edges.find(accId, subjectId, subjectType, subjectIdentifier, verb, objectId, objectType, objectIdentifier, getInnerPoints, limit, math.max(0, offset-limit), newest, oldest).absoluteURL()))
         }
 
         request.queryString.get("callback").flatMap(_.headOption) match {
