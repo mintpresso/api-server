@@ -124,7 +124,7 @@ object Edge {
     DB.withConnection { implicit conn =>
       SQL(
         """
-        insert into edges (sId, sType, v, oId, oType, createdAt, accountId)
+        insert into edges (sId, sType, v, oId, oType, createdAt, updatedAt, accountId, data)
         values ({sId}, {sType}, {v}, {oId}, {oType}, {createdAt}, {updatedAt}, {accountId}, {data})
         """
       ).on(
@@ -138,7 +138,21 @@ object Edge {
         'accountId -> edge.accountId,
         'data -> Json.stringify(edge.data)
       ).executeInsert()
-      Some(0L)
+    }
+  }
+
+  def remove(edge: Edge): Int = {
+    DB.withConnection { implicit conn =>
+      SQL(
+        """
+        delete from `edges` where `accountId` = {accountId} and `sId` = {sId} and `v` = {v} and `oId` = {oId}
+        """
+      ).on(
+        'sId -> edge.sId,
+        'v -> edge.v,
+        'oId -> edge.oId,
+        'accountId -> edge.accountId
+      ).executeUpdate()
     }
   }
 }
