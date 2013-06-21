@@ -630,6 +630,160 @@ class APIv11Spec extends Specification {
         (Json.parse(r4.body) \ "length").as[Int] must equalTo( count-1 )
       }
     }
+    "be added with json data" in {
+      pointSetup { s => o =>
+        val st = (s \ "point" \ "type").as[String]
+        val ot = (o \ "point" \ "type").as[String]
+        val si = (s \ "point" \ "identifier").as[String]
+        val oi = (o \ "point" \ "identifier").as[String]
+        val sid = (s \ "point" \ "id").as[Long]
+        val oid = (o \ "point" \ "id").as[Long]
+
+        val edgeBody = """
+        {
+          "edge": {
+            "subjectId": %d,
+            "verb": "rate",
+            "objectId": %d,
+            "data": {
+              "weight": 5
+            }
+          }
+        }
+        """.format(sid, oid)
+        val r1 = Await.result(
+          WS.url( localUrl + "edge" )
+            .withHeaders( ("Content-Type", "application/json") )
+            .post[String](edgeBody),
+          duration
+        )
+        r1.status === 201
+
+        // insert anyway
+        val r2 = Await.result(
+          WS.url( localUrl + "edge" )
+            .withHeaders( ("Content-Type", "application/json") )
+            .post[String](edgeBody),
+          duration
+        )
+        r2.status === 201
+
+        // soft not found
+        Await.result(
+          WS.url( localUrl + "edge" )
+            .withQueryString(
+              "subjectId" -> sid.toString,
+              "objectId" -> oid.toString,
+              "verb" -> "NOT EXISTING VERB",
+              "limit" -> "1",
+              "getInnerPoints" ->  "false")
+            .get(),
+          duration
+        ).status === 404
+      }
+    }
+
+    "be get latest one with newest created and limit 1" in {
+      pointSetup { s => o =>
+        val st = (s \ "point" \ "type").as[String]
+        val ot = (o \ "point" \ "type").as[String]
+        val si = (s \ "point" \ "identifier").as[String]
+        val oi = (o \ "point" \ "identifier").as[String]
+        val sid = (s \ "point" \ "id").as[Long]
+        val oid = (o \ "point" \ "id").as[Long]
+        
+        val edgeBody2 = """
+        {
+          "edge": {
+            "subjectId": %d,
+            "verb": "rate",
+            "objectId": %d,
+            "data": {
+              "weight": 10
+            }
+          }
+        }
+        """.format(sid, oid)
+        val r3 = Await.result(
+          WS.url( localUrl + "edge" )
+            .withHeaders( ("Content-Type", "application/json") )
+            .post[String](edgeBody2),
+          duration
+        )
+        r3.status === 201
+
+        val r4 = Await.result(
+          WS.url( localUrl + "edge" )
+            .withQueryString(
+              "subjectId" -> sid.toString,
+              "objectId" -> oid.toString,
+              "verb" -> "rate",
+              "newest" -> "created",
+              "limit" -> "1",
+              "getInnerPoints" ->  "false")
+            .get(),
+          duration
+        )
+        r4.status === 200
+        val edges = (Json.parse(r4.body) \ "edges").as[JsArray]
+        (edges(0) \ "data" \ "weight").as[Int] === 10
+      }
+    }
+    "be deleted with limit (default 1)" in {
+      pointSetup { s => o =>
+        val st = (s \ "point" \ "type").as[String]
+        val ot = (o \ "point" \ "type").as[String]
+        val si = (s \ "point" \ "identifier").as[String]
+        val oi = (o \ "point" \ "identifier").as[String]
+        val sid = (s \ "point" \ "id").as[Long]
+        val oid = (o \ "point" \ "id").as[Long]
+        
+        Await.result(
+          WS.url( localUrl + "edge" )
+            .withQueryString(
+              "subjectId" -> sid.toString,
+              "objectId" -> oid.toString,
+              "verb" -> "rate"
+            )
+            .delete(),
+          duration
+        ).status === 200
+
+        Await.result(
+          WS.url( localUrl + "edge" )
+            .withQueryString(
+              "subjectId" -> sid.toString,
+              "objectId" -> oid.toString,
+              "verb" -> "rate"
+            )
+            .get(),
+          duration
+        ).status === 200
+
+        Await.result(
+          WS.url( localUrl + "edge" )
+            .withQueryString(
+              "subjectId" -> sid.toString,
+              "objectId" -> oid.toString,
+              "verb" -> "rate",
+              "limit" -> "10"
+            )
+            .delete(),
+          duration
+        ).status === 200
+
+        Await.result(
+          WS.url( localUrl + "edge" )
+            .withQueryString(
+              "subjectId" -> sid.toString,
+              "objectId" -> oid.toString,
+              "verb" -> "rate"
+            )
+            .get(),
+          duration
+        ).status === 404
+      }
+    }
   }
 
 }
